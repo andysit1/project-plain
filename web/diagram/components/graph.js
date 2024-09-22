@@ -9,8 +9,6 @@ const NODE_CORNER_RADIUS = 8
 const NODE_COLOR = '#552222'
 const NODE_BORDER_COLOR = '#555555'
 const NODE_HIGHLIGHT_COLOR = '#777777'
-const NODE_WIDTH = 150
-const NODE_HEIGHT = 75
 const NODE_TEXT_FONT = '12px Calibri'
 const NODE_TEXT_COLOR = '#CCCCCC'
 const NODE_ACTIVE_COLOR = '#556699'
@@ -29,9 +27,6 @@ class Graph {
         this.canvas = canvas
         this.width = canvas.width
         this.height = canvas.height
-
-        this.activeLayer = 0
-
         this.states = []
         this.transitions = []
         this.nestedGroups = []

@@ -1,4 +1,12 @@
-class Rect {
+const NODE_CORNER_RADIUS = 8
+const NODE_COLOR = '#552222'
+const NODE_BORDER_COLOR = '#555555'
+const NODE_TEXT_FONT = '12px Calibri'
+const NODE_TEXT_COLOR = '#CCCCCC'
+const NODE_ACTIVE_COLOR = '#556699'
+
+
+export class Rect {
     constructor (x, y, w, h) {
       this.x = x
       this.y = y
@@ -15,28 +23,24 @@ class Rect {
     }
 }
 
-class State {
-    constructor (id, name, rect, layer) {
+export class State {
+    constructor (id, name, rect) {
         this.id = id
         this.name = name
         this.rect = rect
-        this.layer = layer
         this.highlight = false
         this.activeState = false
-        this.enterState = false
-        this.exitState = false
     }
 
     draw (ctx) {
-        if (this.layer !== graph.activeLayer) { return }
 
         this.fillNodePath(ctx)
 
-        ctx.fillStyle = this.enterState ? LAYER_ENTER_COLOR : NODE_COLOR
+        ctx.fillStyle = NODE_COLOR
         ctx.fill()
 
         ctx.lineWidth = 2
-        ctx.strokeStyle = this.highlight ? NODE_HIGHLIGHT_COLOR : NODE_BORDER_COLOR
+        ctx.strokeStyle = NODE_BORDER_COLOR
         ctx.stroke()
 
         ctx.fillStyle = NODE_TEXT_COLOR
@@ -47,7 +51,6 @@ class State {
     }
 
     drawActive (ctx) {
-        if (this.layer !== graph.activeLayer) { return }
 
         if (!this.activeState) { return }
 
@@ -65,7 +68,7 @@ class State {
         const r = NODE_CORNER_RADIUS + buffer
 
         ctx.beginPath()
-        ctx.moveTo(x + r, y)
+    ctx.moveTo(x + r, y)
         ctx.lineTo(x + w - r, y)
         ctx.quadraticCurveTo(x + w, y, x + w, y + r)
         ctx.lineTo(x + w, y + h - r)
@@ -78,10 +81,6 @@ class State {
     }
 
     isInBounds (x, y) {
-        if (this.layer !== graph.activeLayer) {
-        return false
-        }
-
         const r = NODE_CORNER_RADIUS
 
         return x >= this.rect.x - r && x < this.rect.x + this.rect.w + r && y >= this.rect.y - r &&
