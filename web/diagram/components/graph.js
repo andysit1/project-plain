@@ -205,3 +205,6 @@ class Graph {
         this.drag = null
     }
 }
+
+
+export default Graph
