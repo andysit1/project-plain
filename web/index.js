@@ -1,5 +1,6 @@
-//make changes to not use sockets..
-  //figure out the diagram structure/design before altering
+
+
+// change color values or move into config.js file
 
 const NODE_CORNER_RADIUS = 8
 const NODE_COLOR = '#552222'
