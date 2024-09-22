@@ -1,4 +1,6 @@
 
+//TODO igure out how this class works + make connections in node
+
 class TransitionGroup {
     constructor (parent, child) {
         this.parent = parent
@@ -198,6 +200,7 @@ class TransitionGroup {
         }
     }
     }
+
 
 
 class NestedGroup {
