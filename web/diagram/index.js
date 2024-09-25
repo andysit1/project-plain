@@ -8,6 +8,13 @@ import {Rect, State} from "./components/node.js"
 const NODE_WIDTH = 150
 const NODE_HEIGHT = 75
 
+//TODO CRUD METHODS , toolbar class?
+function add_node(){
+}
+function delete_node(){
+}
+
+
 function init(){
     console.log("Init Function")
     const canvas = document.getElementById('graph')
