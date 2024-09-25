@@ -43,6 +43,7 @@ class Graph {
         this.repaint = true
     }
 
+    //method to dom events
     subscribeEvents () {
         this.canvas.addEventListener('mousemove', e => this.onMouseMove(e))
         this.canvas.addEventListener('mouseup', e => this.onMouseUp(e))
@@ -178,7 +179,8 @@ class Graph {
     onMouseDown (event) {
         event.preventDefault()
         const { x, y } = this.eventPos(event)
-
+        
+        //grabs the state in mouse position!
         let targetState
         for (const state of this.states) {
         if (state.isInBounds(x, y)) { targetState = state }
