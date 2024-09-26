@@ -31,6 +31,8 @@ class Graph {
         this.transitions = []
         this.nestedGroups = []
 
+        this.select_active = null
+
         this.subscribeEvents()
 
         this.repaint = true
@@ -68,13 +70,25 @@ class Graph {
         requestAnimationFrame(() => this.animation())
     }
 
+    //draws the selected graph node! keeps select until diff is chosen
+    drawSelect () {
+        if (!this.select_active) { return }
+
+        const ctx = this.canvas.getContext('2d')
+        this.select_active.fillNodePath(ctx, 8)
+        ctx.lineWidth = 3
+        ctx.strokeStyle = NODE_ACTIVE_COLOR
+        ctx.stroke()
+    }
+
     drawScene () {
         this.width = this.canvas.width = this.canvas.clientWidth
         this.height = this.canvas.height = this.canvas.clientHeight
 
         const ctx = this.canvas.getContext('2d')
-        this.drawBackground(ctx)
 
+        this.drawBackground(ctx)
+        
         for (const state of this.states) { state.drawActive(ctx) }
 
         for (const trans of this.transitions) { trans.draw(ctx) }
@@ -82,6 +96,10 @@ class Graph {
         for (const state of this.states) { state.draw(ctx) }
 
         for (const trans of this.transitions) { trans.drawHover(ctx) }
+        
+
+        this.drawSelect()
+
     }
 
     drawBackground (ctx) {
@@ -187,6 +205,10 @@ class Graph {
         }
 
         if (!targetState) { return }
+        
+
+        //added for graph obj to know the state which is selected..
+        this.select_active = targetState
 
         this.drag = {
         target: targetState,
