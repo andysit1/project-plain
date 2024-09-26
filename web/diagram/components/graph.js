@@ -12,6 +12,7 @@ const NODE_HIGHLIGHT_COLOR = '#777777'
 const NODE_TEXT_FONT = '12px Calibri'
 const NODE_TEXT_COLOR = '#CCCCCC'
 const NODE_ACTIVE_COLOR = '#556699'
+const NODE_SELECT_COLOR = '#FFA500'
 const LINE_COLOR = '#555555'
 const LINE_THICKNESS = 5
 const LINE_SEPARATION = 16
@@ -77,7 +78,7 @@ class Graph {
         const ctx = this.canvas.getContext('2d')
         this.select_active.fillNodePath(ctx, 8)
         ctx.lineWidth = 3
-        ctx.strokeStyle = NODE_ACTIVE_COLOR
+        ctx.strokeStyle = NODE_SELECT_COLOR
         ctx.stroke()
     }
 
