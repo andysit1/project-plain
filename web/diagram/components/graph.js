@@ -12,6 +12,7 @@ const NODE_HIGHLIGHT_COLOR = '#777777'
 const NODE_TEXT_FONT = '12px Calibri'
 const NODE_TEXT_COLOR = '#CCCCCC'
 const NODE_ACTIVE_COLOR = '#556699'
+const NODE_SELECT_COLOR = '#FFA500'
 const LINE_COLOR = '#555555'
 const LINE_THICKNESS = 5
 const LINE_SEPARATION = 16
@@ -31,6 +32,8 @@ class Graph {
         this.transitions = []
         this.nestedGroups = []
 
+        this.select_active = null
+
         this.subscribeEvents()
 
         this.repaint = true
@@ -43,6 +46,7 @@ class Graph {
         this.repaint = true
     }
 
+    //method to dom events
     subscribeEvents () {
         this.canvas.addEventListener('mousemove', e => this.onMouseMove(e))
         this.canvas.addEventListener('mouseup', e => this.onMouseUp(e))
@@ -67,13 +71,25 @@ class Graph {
         requestAnimationFrame(() => this.animation())
     }
 
+    //draws the selected graph node! keeps select until diff is chosen
+    drawSelect () {
+        if (!this.select_active) { return }
+
+        const ctx = this.canvas.getContext('2d')
+        this.select_active.fillNodePath(ctx, 8)
+        ctx.lineWidth = 3
+        ctx.strokeStyle = NODE_SELECT_COLOR
+        ctx.stroke()
+    }
+
     drawScene () {
         this.width = this.canvas.width = this.canvas.clientWidth
         this.height = this.canvas.height = this.canvas.clientHeight
 
         const ctx = this.canvas.getContext('2d')
-        this.drawBackground(ctx)
 
+        this.drawBackground(ctx)
+        
         for (const state of this.states) { state.drawActive(ctx) }
 
         for (const trans of this.transitions) { trans.draw(ctx) }
@@ -81,6 +97,10 @@ class Graph {
         for (const state of this.states) { state.draw(ctx) }
 
         for (const trans of this.transitions) { trans.drawHover(ctx) }
+        
+
+        this.drawSelect()
+
     }
 
     drawBackground (ctx) {
@@ -178,13 +198,18 @@ class Graph {
     onMouseDown (event) {
         event.preventDefault()
         const { x, y } = this.eventPos(event)
-
+        
+        //grabs the state in mouse position!
         let targetState
         for (const state of this.states) {
         if (state.isInBounds(x, y)) { targetState = state }
         }
 
         if (!targetState) { return }
+        
+
+        //added for graph obj to know the state which is selected..
+        this.select_active = targetState
 
         this.drag = {
         target: targetState,
