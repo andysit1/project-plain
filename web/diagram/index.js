@@ -1,10 +1,22 @@
-
-
-
-
 import Graph from "./components/graph.js"
 import { Rect, State } from "./components/node.js"
 import { randomInt } from "./utils/nums.js"
+
+
+
+// update this to fit my requirements 
+// test wait fake data..
+
+
+// function onConnected (packet) {
+//   console.log('Bot connected.')
+
+//   graph.clear()
+//   loadNestedGroups(packet)
+//   loadStates(packet)
+//   loadTransitions(packet)
+//   graph.repaint = true
+// }
 
 const NODE_WIDTH = 150
 const NODE_HEIGHT = 75
