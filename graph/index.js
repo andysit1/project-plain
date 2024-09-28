@@ -8,8 +8,6 @@ import { randomInt } from "./utils/nums.js"
 // update this to fit my requirements 
 // test wait fake data..
 
-
-
 function onConnected (packet) {
   console.log('Bot connected.')
 

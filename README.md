@@ -1,2 +1,1 @@
-# urdumbtechfriendandy
-edtech website
+WIP
