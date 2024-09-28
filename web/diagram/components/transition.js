@@ -46,9 +46,9 @@ class TransitionGroup {
         dir.x /= mag
         dir.y /= mag
     }
-    }
+}
 
-    class Transition {
+class Transition {
     constructor (id, name, parent, child, group) {
         this.id = id
         this.name = name
@@ -199,7 +199,7 @@ class TransitionGroup {
         y: y1 + p4 * rn
         }
     }
-    }
+}
 
 
 
