@@ -25,12 +25,12 @@ html {
   }
   
   #properties-panel {
-  width: min(25%, 300px);
+  width: min(5%, 30px);
   background-color: #222222;
   }
   
   canvas {
-  width: max(75%, calc(100% - 300px));
+  width: max(100%);
   }
   
   #properties-panel button {
