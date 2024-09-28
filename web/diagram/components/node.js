@@ -4,7 +4,12 @@ const NODE_BORDER_COLOR = '#555555'
 const NODE_TEXT_FONT = '12px Calibri'
 const NODE_TEXT_COLOR = '#CCCCCC'
 const NODE_ACTIVE_COLOR = '#556699'
-
+const LINE_COLOR = '#555555'
+const LINE_THICKNESS = 5
+const LINE_SEPARATION = 16
+const LINE_HIGHLIGHT = '#888888'
+const LINE_TEXT_FONT = '12px Calibri'
+const LAYER_ENTER_COLOR = '#559966'
 
 export class Rect {
     constructor (x, y, w, h) {
@@ -14,11 +19,11 @@ export class Rect {
       this.h = h
     }
   
-    center_x () {
+    cx () {
       return this.x + this.w / 2
     }
   
-    center_y () {
+    cy () {
       return this.y + this.h / 2
     }
 }
