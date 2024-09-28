@@ -1,13 +1,33 @@
 
 //TODO igure out how this class works + make connections in node
+const NODE_CORNER_RADIUS = 8
+const NODE_COLOR = '#552222'
+const NODE_BORDER_COLOR = '#555555'
+const NODE_HIGHLIGHT_COLOR = '#777777'
+const NODE_WIDTH = 150
+const NODE_HEIGHT = 75
+const NODE_TEXT_FONT = '12px Calibri'
+const NODE_TEXT_COLOR = '#CCCCCC'
+const NODE_ACTIVE_COLOR = '#556699'
+const LINE_COLOR = '#555555'
+const LINE_THICKNESS = 5
+const LINE_SEPARATION = 16
+const LINE_HIGHLIGHT = '#888888'
+const LINE_TEXT_FONT = '12px Calibri'
+const LAYER_ENTER_COLOR = '#559966'
 
-class TransitionGroup {
+//this grp is just used for calcuations given two states as parent and child.
+// grp called link/connection is better fitting I think.
+
+export class TransitionGroup {
     constructor (parent, child) {
         this.parent = parent
         this.child = child
         this.transitions = []
     }
 
+
+    //this calculate the offset from side to side transitions!
     offset (transition) {
         const index = this.transitions.indexOf(transition)
 
@@ -48,7 +68,7 @@ class TransitionGroup {
     }
 }
 
-class Transition {
+export class Transition {
     constructor (id, name, parent, child, group) {
         this.id = id
         this.name = name
@@ -200,7 +220,6 @@ class Transition {
         }
     }
 }
-
 
 
 class NestedGroup {

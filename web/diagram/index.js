@@ -1,4 +1,5 @@
 import Graph from "./components/graph.js"
+import { Transition, TransitionGroup } from "./components/transition.js"
 import { Rect, State } from "./components/node.js"
 import { randomInt } from "./utils/nums.js"
 
@@ -8,15 +9,16 @@ import { randomInt } from "./utils/nums.js"
 // test wait fake data..
 
 
-// function onConnected (packet) {
-//   console.log('Bot connected.')
 
-//   graph.clear()
-//   loadNestedGroups(packet)
-//   loadStates(packet)
-//   loadTransitions(packet)
-//   graph.repaint = true
-// }
+function onConnected (packet) {
+  console.log('Bot connected.')
+
+  graph.clear()
+  loadNestedGroups(packet)
+  loadStates(packet)
+  loadTransitions(packet)
+  graph.repaint = true
+}
 
 const NODE_WIDTH = 150
 const NODE_HEIGHT = 75
@@ -79,11 +81,11 @@ function init(){
     )
 
     const stateNode = new State(0, "Home", rect)
-    const stateNode1 = new State(1, "Origin", rect2)
+    const stateNodeOne = new State(1, "Origin", rect2)
     stateNode.activeState = true
 
     graph.states.push(stateNode)  
-    graph.states.push(stateNode1)
+    graph.states.push(stateNodeOne)
     graph.repaint = true
   
 
@@ -91,6 +93,16 @@ function init(){
     add_node(graph.states)
     add_node(graph.states)
     add_node(graph.states)
+
+    //handles the offset and array calcuations ()
+    const t_group = new TransitionGroup(stateNode, stateNodeOne)
+
+                          // transition id name, connections state1 connection state2, and layer
+    const t = new Transition("1", "transition 1", stateNode, stateNodeOne, t_group)
+   
+    t_group.transitions.push(t)
+    graph.transitions.push(t)
+
 }
 
 document.addEventListener('DOMContentLoaded', init);
