@@ -3,10 +3,16 @@
     find css and index
 */
 
+// given node id add. (should just be length of the list since it's always untaken)
 function addNode() {
-    console.log("Adding Graph")
+    console.log("Deleting Node")
 }
   
+//given node id delete.
+function deleteNode() {
+    console.log("Deleting Node")
+}
+
 function clearGraph() {
     console.log("Clear Graph")
 }
@@ -14,7 +20,6 @@ function clearGraph() {
 function saveGraph() {
     console.log("Saving Graph")
 }
-
 
 // Add event listeners to toolbar buttons
 document.getElementById('addnote-btn').addEventListener('click', addNode);
