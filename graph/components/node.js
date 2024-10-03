@@ -73,7 +73,7 @@ export class State {
         const r = NODE_CORNER_RADIUS + buffer
 
         ctx.beginPath()
-    ctx.moveTo(x + r, y)
+        ctx.moveTo(x + r, y)
         ctx.lineTo(x + w - r, y)
         ctx.quadraticCurveTo(x + w, y, x + w, y + r)
         ctx.lineTo(x + w, y + h - r)

@@ -3,8 +3,6 @@ import { Transition, TransitionGroup } from "./components/transition.js"
 import { Rect, State } from "./components/node.js"
 import { randomInt } from "./utils/nums.js"
 
-
-
 // update this to fit my requirements 
 // test wait fake data..
 
@@ -52,11 +50,35 @@ function delete_node(states){
 }
 
 
-function init(){
-    console.log("Init Function")
-    const canvas = document.getElementById('graph')
-    let graph = new Graph(canvas)
 
+// Class managing transitions between different game states.
+class Machine {
+  constructor() {
+    this.current = null;
+    this.nextLayer = null;
+  }
+
+  /**
+   * Updates the current state and transitions to the next state if needed.
+   */
+  update() {
+    if (this.nextLayer) {
+      this.current = this.nextLayer;
+      this.nextLayer = null;
+    }
+  }
+}
+
+
+class LayerEngine {
+  constructor () {
+    this.machine = new Machine()
+
+    //loads the canvas
+    const canvas = document.getElementById('graph')
+    this.graph = new Graph(canvas)
+  
+  
     let startX = 400
     let startY = 400
 
@@ -82,15 +104,15 @@ function init(){
     const stateNodeOne = new State(1, "Origin", rect2)
     stateNode.activeState = true
 
-    graph.states.push(stateNode)  
-    graph.states.push(stateNodeOne)
-    graph.repaint = true
+    this.graph.states.push(stateNode)  
+    this.graph.states.push(stateNodeOne)
+    this.graph.repaint = true
   
 
-    add_node(graph.states)
-    add_node(graph.states)
-    add_node(graph.states)
-    add_node(graph.states)
+    add_node(this.graph.states)
+    add_node(this.graph.states)
+    add_node(this.graph.states)
+    add_node(this.graph.states)
 
     //handles the offset and array calcuations ()
     const t_group = new TransitionGroup(stateNode, stateNodeOne)
@@ -99,10 +121,61 @@ function init(){
     const t = new Transition("1", "transition 1", stateNode, stateNodeOne, t_group)
    
     t_group.transitions.push(t)
-    graph.transitions.push(t)
+    this.graph.transitions.push(t)
+    //set first layer
+  }
 
+
+  // i
+
+  encodeTransition(transition) {
+    // Encode a transition into a string
+    // const { id, name, state1, state2 } = transition;
+    // #1,Name
+    return `Transition: ${transition.id}|${transition.name}|${transition.parent.id},${transition.child.id}`;
+  }
+
+  encodeState(state) {
+    // Encode a state into a string
+    const { id, name, rect } = state;
+    const rectStr = `${rect.x},${rect.y},${rect.width},${rect.height}`;
+    return `State: ${id}|${name}|${rectStr}`;
+  }
+
+  load_layer(encoded_data) {
+    console.log(encoded_data)
+  }
+
+  swap_layer() {
+    if (!this.machine.nextLayer) {return}
+
+    this.graph.clear()
+    this.graph.repaint = true
+    this.load_layer("loading encoded data")
+  }
+
+
+  setLayer(encoded_data){
+
+    this()
+
+    console.log(encoded_data)
+  }
+
+  display(){
+    const stateStrings = this.graph.states.map(state => this.encodeState(state));
+    const transitionStrings = this.graph.transitions.map(t => this.encodeTransition(t));
+    
+    
+    console.log("State", stateStrings)
+    console.log("Transisitions", transitionStrings)
+  }
+}
+
+function init(){
+    const layerMachine = new LayerEngine()
+
+    layerMachine.display()
 }
 
 document.addEventListener('DOMContentLoaded', init);
-
-

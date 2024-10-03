@@ -83,3 +83,29 @@ html {
   margin-left: 120px;
   width: calc(100% - 124px);
   }
+
+
+  #toolbar {
+    background-color: #333;
+    padding: 10px;
+    display: flex;
+    gap: 10px;
+  }
+  
+  #toolbar button {
+    background-color: #555;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+  }
+  
+  #toolbar button:hover {
+    background-color: #777;
+  }
+  
+  canvas {
+    display: block;
+    margin-top: 0px;
+  }
+  
