@@ -25,8 +25,6 @@ const NODE_HEIGHT = 75
 //TODO CRUD METHODS , toolbar class?
 function add_node(states){
     //create a base nod
-    console.log(states)
-
     let startX = randomInt(0, 400)
     let startY = randomInt(0, 400)
 
@@ -69,7 +67,42 @@ class Machine {
   }
 }
 
+//----------
+// Handles the graph states -> how we function
+const GraphState = {
+  IDLE: 'IDLE',
+  SELECTING_NODE: 'SELECTING_NODE',
+  MAKING_TRANSITION: 'MAKING_TRANSITION',
+  EDITING_NODE: 'EDITING_NODE',
+  // Add more states as needed
+};
 
+// pass this object through objects and it will handle the logic behind scenes
+class GraphController {
+  constructor() {
+      this.state = GraphState.IDLE;
+      this.components = []; // Keep track of components to update
+  }
+
+  addComponent(component) {
+      this.components.push(component);
+  }
+
+  setState(newState) {
+      this.state = newState;
+      console.log(`State changed to: ${this.state}`);
+      this.updateComponents(); // Notify components of the state change
+  }
+
+  updateComponents() {
+      this.components.forEach(component => {
+          component.update(this.state);
+      });
+  }
+}
+//----------
+
+// Handle the Layering which passes a reference GraphState into the node, toolbar, 
 class LayerEngine {
   constructor () {
     this.machine = new Machine()
