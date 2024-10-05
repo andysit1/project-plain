@@ -2,6 +2,10 @@ import Graph from "./components/graph.js"
 import { Transition, TransitionGroup } from "./components/transition.js"
 import { Rect, State } from "./components/node.js"
 import { randomInt } from "./utils/nums.js"
+import { GraphManager } from "./components/graph_handler.js"
+
+
+
 
 // update this to fit my requirements 
 // test wait fake data..
@@ -159,8 +163,6 @@ class LayerEngine {
   }
 
 
-  // i
-
   encodeTransition(transition) {
     // Encode a transition into a string
     // const { id, name, state1, state2 } = transition;
@@ -207,8 +209,16 @@ class LayerEngine {
 
 function init(){
     const layerMachine = new LayerEngine()
-
     layerMachine.display()
+    
+    // Create an instance of GraphManager
+    const graphManager = new GraphManager(layerMachine.graph);
+
+    // Attach class methods to event listeners
+    document.getElementById('addnote-btn').addEventListener('click', graphManager.addNode);
+    document.getElementById('deletenote-btn').addEventListener('click', graphManager.deleteNode);
+    document.getElementById('cleargraph-btn').addEventListener('click', graphManager.clearGraph);
+    document.getElementById('save-btn').addEventListener('click', graphManager.saveGraph);
 }
 
 document.addEventListener('DOMContentLoaded', init);
