@@ -134,6 +134,7 @@ export class Transition {
         ctx.fillText(this.name, this.mousePos.x, this.mousePos.y - 10)
     }
 
+    //freaky math what
     isInBounds (x, y) {
         if (this.parent.layer !== graph.activeLayer ||
                 this.child.layer !== graph.activeLayer) { return false }

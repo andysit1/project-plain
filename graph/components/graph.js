@@ -172,26 +172,26 @@ class Graph {
         const mousePos = { x: x, y: y }
 
         for (const state of this.states) {
-        const mousedOver = state.isInBounds(x, y)
-
-        if (mousedOver !== state.highlight) {
-            state.highlight = mousedOver
-            this.repaint = true
-        }
+            const mousedOver = state.isInBounds(x, y)
+            
+            if (mousedOver !== state.highlight) {
+                state.highlight = mousedOver
+                this.repaint = true
+            }
         }
 
         for (const trans of this.transitions) {
-        const mousedOver = trans.isInBounds(x, y)
+            const mousedOver = trans.isInBounds(x, y)
 
-        if (mousedOver !== trans.highlight) {
-            trans.highlight = mousedOver
-            this.repaint = true
-        }
+            if (mousedOver !== trans.highlight) {
+                trans.highlight = mousedOver
+                this.repaint = true
+            }
 
-        if (mousedOver) {
-            trans.mousePos = mousePos
-            this.repaint = true
-        }
+            if (mousedOver) {
+                trans.mousePos = mousePos
+                this.repaint = true
+            }
         }
     }
 

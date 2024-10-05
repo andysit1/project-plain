@@ -22,7 +22,6 @@ export class GraphManager {
     }
 
     addNode() {
-        console.log("Adding Node");
         let startX = 400
         let startY = 400
 
@@ -40,7 +39,6 @@ export class GraphManager {
     }
 
     deleteNode() {
-        console.log("Deleting Node");
         if (this.graph.select_active != null){
             console.log("Deleting", this.graph.select_active)
             return
@@ -56,4 +54,20 @@ export class GraphManager {
         console.log("Saving Graph");
         console.log(this.graph.states)
     }
+
+
+
+    //look into a better way of selecting two states
+    //base function...
+    makeTransitions(state1, state2){
+        //handles the offset and array calcuations ()
+        const t_group = new TransitionGroup(state1, state2)
+
+        // transition id name, connections state1 connection state2, and layer
+        const t = new Transition("1", "transition 1", state1, state2, t_group)
+
+        t_group.transitions.push(t)
+        this.graph.transitions.push(t)
+    }
+
 }
