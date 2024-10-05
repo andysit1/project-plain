@@ -1,6 +1,7 @@
 const NODE_CORNER_RADIUS = 8
 const NODE_COLOR = '#552222'
 const NODE_BORDER_COLOR = '#555555'
+const NODE_HIGHLIGHT_COLOR = '#777777'
 const NODE_TEXT_FONT = '12px Calibri'
 const NODE_TEXT_COLOR = '#CCCCCC'
 const NODE_ACTIVE_COLOR = '#556699'
@@ -45,7 +46,7 @@ export class State {
         ctx.fill()
 
         ctx.lineWidth = 2
-        ctx.strokeStyle = NODE_BORDER_COLOR
+        ctx.strokeStyle = this.highlight ? NODE_HIGHLIGHT_COLOR : NODE_BORDER_COLOR
         ctx.stroke()
 
         ctx.fillStyle = NODE_TEXT_COLOR
