@@ -12,7 +12,6 @@
 
 <body>
     <div id="content">
-    
         <div id="toolbar">
             <button id="addnote-btn">Add Node</button>
             <button id="deletenote-btn">Delete Node</button>
@@ -20,7 +19,18 @@
             <button id="save-btn">Save</button>
             <button id="addtrans-btn">Add Transition</button>
         </div>
-          
+
+        
+        <!-- Draggable DIV   https://www.w3schools.com/howto/howto_js_draggable.asp   -->
+        <div id="mydiv">
+            <!-- Include a header DIV with the same name as the draggable DIV, followed by "header" -->
+            <div id="mydivheader">Click here to move</div>
+            <p>Properties</p>
+            <p>Codebase</p>
+            <p>Explainations</p>
+        </div>
+
+
         <canvas id="graph">
             Your browser does not support HTML5 canvas and is unable to view this
             web application. We recommend using Firefox or Chrome with JavaScript
