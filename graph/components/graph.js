@@ -33,6 +33,8 @@ class Graph {
         this.nestedGroups = []
 
         this.select_active = null
+        this.previous_select_active = null
+
 
         this.subscribeEvents()
 
@@ -209,8 +211,11 @@ class Graph {
         
 
         //added for graph obj to know the state which is selected..
+        if (this.select_active !=  null){
+            this.previous_select_active = this.select_active
+        }
         this.select_active = targetState
-
+        
         this.drag = {
         target: targetState,
         startX: targetState.rect.x,

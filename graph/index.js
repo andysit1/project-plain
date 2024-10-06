@@ -159,7 +159,8 @@ class LayerEngine {
    
     t_group.transitions.push(t)
     this.graph.transitions.push(t)
-    //set first layer
+
+
   }
 
 
@@ -219,6 +220,8 @@ function init(){
     document.getElementById('deletenote-btn').addEventListener('click', graphManager.deleteNode);
     document.getElementById('cleargraph-btn').addEventListener('click', graphManager.clearGraph);
     document.getElementById('save-btn').addEventListener('click', graphManager.saveGraph);
+    document.getElementById('addtrans-btn').addEventListener('click', graphManager.makeTransitions);
+
 }
 
 document.addEventListener('DOMContentLoaded', init);

@@ -39,7 +39,6 @@ export class State {
     }
 
     draw (ctx) {
-
         this.fillNodePath(ctx)
 
         ctx.fillStyle = NODE_COLOR
@@ -64,6 +63,9 @@ export class State {
         ctx.lineWidth = 3
         ctx.strokeStyle = NODE_ACTIVE_COLOR
         ctx.stroke()
+
+
+
     }
 
     fillNodePath (ctx, buffer = 0) {
