@@ -33,6 +33,8 @@ class Graph {
         this.nestedGroups = []
 
         this.select_active = null
+        this.previous_select_active = null
+
 
         this.subscribeEvents()
 
@@ -172,26 +174,26 @@ class Graph {
         const mousePos = { x: x, y: y }
 
         for (const state of this.states) {
-        const mousedOver = state.isInBounds(x, y)
-
-        if (mousedOver !== state.highlight) {
-            state.highlight = mousedOver
-            this.repaint = true
-        }
+            const mousedOver = state.isInBounds(x, y)
+            
+            if (mousedOver !== state.highlight) {
+                state.highlight = mousedOver
+                this.repaint = true
+            }
         }
 
         for (const trans of this.transitions) {
-        const mousedOver = trans.isInBounds(x, y)
+            const mousedOver = trans.isInBounds(x, y)
 
-        if (mousedOver !== trans.highlight) {
-            trans.highlight = mousedOver
-            this.repaint = true
-        }
+            if (mousedOver !== trans.highlight) {
+                trans.highlight = mousedOver
+                this.repaint = true
+            }
 
-        if (mousedOver) {
-            trans.mousePos = mousePos
-            this.repaint = true
-        }
+            if (mousedOver) {
+                trans.mousePos = mousePos
+                this.repaint = true
+            }
         }
     }
 
@@ -209,8 +211,11 @@ class Graph {
         
 
         //added for graph obj to know the state which is selected..
+        if (this.select_active !=  null){
+            this.previous_select_active = this.select_active
+        }
         this.select_active = targetState
-
+        
         this.drag = {
         target: targetState,
         startX: targetState.rect.x,
