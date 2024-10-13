@@ -66,8 +66,8 @@ class Graph {
 
     animation () {
         if (this.needsRepaint()) {
-        this.repaint = false
-        this.drawScene()
+            this.repaint = false
+            this.drawScene()
         }
 
         requestAnimationFrame(() => this.animation())
@@ -102,7 +102,7 @@ class Graph {
         
 
         this.drawSelect()
-
+        
     }
 
     drawBackground (ctx) {
