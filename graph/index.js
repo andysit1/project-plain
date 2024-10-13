@@ -4,9 +4,6 @@ import { Rect, State } from "./components/node.js"
 import { randomInt } from "./utils/nums.js"
 import { GraphManager } from "./components/graph_handler.js"
 
-
-
-
 // update this to fit my requirements 
 // test wait fake data..
 
