@@ -210,7 +210,7 @@ class LayerEngine {
 
 function init(){
     const layerMachine = new LayerEngine()
-    layerMachine.display()
+    // layerMachine.display()
     
     // Create an instance of GraphManager
     const graphManager = new GraphManager(layerMachine.graph);
@@ -221,7 +221,6 @@ function init(){
     document.getElementById('cleargraph-btn').addEventListener('click', graphManager.clearGraph);
     document.getElementById('save-btn').addEventListener('click', graphManager.saveGraph);
     document.getElementById('addtrans-btn').addEventListener('click', graphManager.makeTransitions);
-
 }
 
 document.addEventListener('DOMContentLoaded', init);
