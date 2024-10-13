@@ -41,9 +41,8 @@ export class GraphManager {
     }
 
 
-
     clearGraph() {
-        console.log("Clearing Graph");
+        console.log("Clearing Graph")
     }
 
     saveGraph() {

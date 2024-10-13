@@ -38,6 +38,10 @@ export class State {
         this.activeState = false
     }
 
+    updateName(name){
+        this.nane = name
+    }
+
     draw (ctx) {
         this.fillNodePath(ctx)
 

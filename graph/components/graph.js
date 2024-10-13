@@ -1,4 +1,5 @@
 
+import { updateWindow } from "./info_window.js"
 
 
 
@@ -37,7 +38,6 @@ class Graph {
 
 
         this.subscribeEvents()
-
         this.repaint = true
         requestAnimationFrame(() => this.animation())
     }
@@ -102,7 +102,6 @@ class Graph {
         
 
         this.drawSelect()
-
     }
 
     drawBackground (ctx) {
@@ -213,6 +212,7 @@ class Graph {
         //added for graph obj to know the state which is selected..
         if (this.select_active !=  null){
             this.previous_select_active = this.select_active
+            updateWindow(this.select_active)
         }
         this.select_active = targetState
         
