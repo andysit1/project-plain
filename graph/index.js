@@ -161,6 +161,12 @@ class LayerEngine {
   }
 
 
+  // Add the Info Window Preview HERE ---- uses states.graphs...
+  
+
+
+  //------
+
   encodeTransition(transition) {
     // Encode a transition into a string
     // const { id, name, state1, state2 } = transition;
@@ -199,10 +205,13 @@ class LayerEngine {
     const stateStrings = this.graph.states.map(state => this.encodeState(state));
     const transitionStrings = this.graph.transitions.map(t => this.encodeTransition(t));
     
-    
     console.log("State", stateStrings)
     console.log("Transisitions", transitionStrings)
   }
+}
+
+export function updatePreview() {
+  console.log("Updating...")
 }
 
 function init(){
@@ -218,6 +227,7 @@ function init(){
     document.getElementById('cleargraph-btn').addEventListener('click', graphManager.clearGraph);
     document.getElementById('save-btn').addEventListener('click', graphManager.saveGraph);
     document.getElementById('addtrans-btn').addEventListener('click', graphManager.makeTransitions);
+    document.getElementById('update-state').addEventListener('click', updatePreview);
 
 }
 

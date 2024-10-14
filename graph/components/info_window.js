@@ -20,19 +20,15 @@ export class PreviewWindow {
     }
 }
 
-
-
 export function updateWindow(selectedNode) {
-    const previewElement = document.getElementById('propertiespreview'); // Assume an element with id 'preview' in HTML
+    // Get the input elements for node properties
+    const nodeIdInput = document.getElementById('node-id');
+    const nodeNameInput = document.getElementById('node-name');
 
-    if (previewElement && selectedNode) {
-        // Update the HTML with information about the selected node
-        previewElement.innerHTML = `
-            <h3>Node Details</h3>
-            <p>ID: ${selectedNode.id}</p>
-            <p>Name: ${selectedNode.name}</p>
-            <p>Description: ${selectedNode.description}</p>
-        `;
+    // Check if inputs exist and update their values
+    if (selectedNode && nodeIdInput && nodeNameInput) {
+        nodeIdInput.value = selectedNode.id;
+        nodeNameInput.value = selectedNode.name;
     }
 }
 
