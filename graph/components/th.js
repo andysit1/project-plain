@@ -7,18 +7,46 @@ class TransitionGroupManager {
         this.transitions = {};
     }
 
+
+    //add grp or transition
+    addTransitionGRP(state1, state2, transition){
+        const key = `${state1.id}-${state2.id}`;
+        if ( this.transitions[key] ){
+            this.transitions[key].push(transition)
+            console.log("added transition")
+            return
+        }
+        
+        this.transitions[key] = TransitionGroup(
+            state1,
+            state2,
+            this.transitions = [transition]
+        )
+        console.log("Made transition group")
+        return
+    }
+
     addTransition(nodeIdA, nodeIdB, transition) {
         const key = `${nodeIdA}-${nodeIdB}`;
         if (this.transitions[key]){
+
+        
             this.transitions[key].push(transition)
             console.log(`Transition updated: ${key} ->`, transition);
         }else{
+
+      
             this.transitions[key] = transition;
             console.log(`Transition added: ${key} ->`, transition);
         }
     }
 
-    getTransition(nodeIdA, nodeIdB) {
+    getTransitionByID(){
+        return Object.entries(this.transitions).map(([key, transition]) => (
+            console.log(key, transition.type)
+        ));
+    }
+    getTransition(nodeIdA, nodeIdB,) {
         const key = `${nodeIdA}-${nodeIdB}`;
         return this.transitions[key] || null;
     }
@@ -71,7 +99,7 @@ const state2 = new State(
 // Example usage
 const transitionManager = new TransitionGroupManager();
 
-const t = new Transition("1", "transition 1", state1, state2, transitionManager.getTransition(state1.id, state2.id))
+// const t = new Transition("1", "transition 1", state1, state2, transitionManager.getTransition(state1.id, state2.id))
 
 // Adding transitions
 transitionManager.addTransition("1", "2", { type: "move", duration: 100 });
@@ -86,3 +114,8 @@ console.log(transitionManager.listTransitions());
 // Removing a transition
 transitionManager.removeTransition("1", "2");
 console.log(transitionManager.getTransition("1", "2")); // null
+
+console.log("_____")
+
+
+transitionManager.getTransitionByID()
