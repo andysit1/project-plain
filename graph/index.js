@@ -41,8 +41,28 @@ function add_node(states){
         
     const stateNode = new State(states.length, " Node", rect)
     states.push(stateNode)
-
 }
+
+
+
+//TODO CRUD METHODS , toolbar class?
+function add_transition(transitions){
+  //create a base nod
+  let startX = randomInt(0, 400)
+  let startY = randomInt(0, 400)
+
+  const rect = new Rect(
+    startX,
+    startY,
+    NODE_WIDTH,
+    NODE_HEIGHT
+  )
+      
+  const stateNode = new State(states.length, " Node", rect)
+  states.push(stateNode)
+}
+
+
 
 function delete_node(states){
   let targetStates
@@ -106,21 +126,25 @@ class GraphController {
 }
 //----------
 
+
 // Handle the Layering which passes a reference GraphState into the node, toolbar, 
 class LayerEngine {
   constructor () {
     this.machine = new Machine()
+    this.next_layer = this.next_layer.bind(this);
+
+
 
     //loads the canvas
     const canvas = document.getElementById('graph')
     this.graph = new Graph(canvas)
-  
+    
   
     let startX = 400
     let startY = 400
 
-    let originX = 0
-    let originY = 0
+    this.layer_incrementer = 0
+    this.layers = [1, 3, 4, 5]
 
     const rect = new Rect(
         startX,
@@ -130,39 +154,19 @@ class LayerEngine {
       )
     
 
-    const rect2 = new Rect(
-      originX,
-      originY,
-      NODE_WIDTH,
-      NODE_HEIGHT
-    )
-
     const stateNode = new State(0, "Home", rect)
-    const stateNodeOne = new State(1, "Origin", rect2)
-    stateNode.activeState = true
-
     this.graph.states.push(stateNode)  
-    this.graph.states.push(stateNodeOne)
     this.graph.repaint = true
-  
-
-    add_node(this.graph.states)
-    add_node(this.graph.states)
-    add_node(this.graph.states)
-    add_node(this.graph.states)
-
-    //handles the offset and array calcuations ()
-    const t_group = new TransitionGroup(stateNode, stateNodeOne)
-
-                          // transition id name, connections state1 connection state2, and layer
-    const t = new Transition("1", "transition 1", stateNode, stateNodeOne, t_group)
-   
-    t_group.transitions.push(t)
-    this.graph.transitions.push(t)
-
-
   }
 
+  next_layer(){
+    this.layer_incrementer += 1
+    let index = this.layer_incrementer % this.layers.length
+
+    if (this.layers[index] != undefined){
+      this.load_layer(this.layers[index])
+    }
+  }
 
   encodeTransition(transition) {
     // Encode a transition into a string
@@ -178,9 +182,18 @@ class LayerEngine {
     return `State: ${id}|${name}|${rectStr}`;
   }
 
-  load_layer(encoded_data) {
-    console.log(encoded_data)
-  }
+
+  load_layer(data) {
+    console.log(data.states)
+    console.log(data.transition)
+    console.log(data.nested_group)
+
+    this.graph.states = data.states
+    this.graph.transitions = data.transition
+    this.graph.nestedGroups = data.nested_group
+
+    this.graph.repaint = true
+  } 
 
   swap_layer() {
     if (!this.machine.nextLayer) {return}
@@ -192,10 +205,8 @@ class LayerEngine {
 
 
   setLayer(encoded_data){
-
-    this()
-
     console.log(encoded_data)
+    encoded_data.states
   }
 
   display(){
@@ -208,12 +219,59 @@ class LayerEngine {
   }
 }
 
+
+//layers class will hold states, transitions, and groups
+class Layers{
+  constructor(states, transition, nest){
+    this.states = states
+    this.transition = transition
+    this.nested_group = nest
+  }
+}
+
+
+function placeholder_layer(){
+  console.log("swap")
+}
+
 function init(){
+
+    const layer1_states = []
+    add_node(layer1_states)
+    add_node(layer1_states)
+    add_node(layer1_states)
+    add_node(layer1_states)
+    const layer2_states = []
+    add_node(layer2_states)
+    add_node(layer2_states)
+
+    const layer3_states = []
+    add_node(layer3_states)
+
+    let layer1 = new Layers(
+      layer1_states,
+      [],
+      [],
+    )
+
+    let layer2 = new Layers(
+      layer2_states,
+      [],
+      [],
+    )
+
+    let layer3 = new Layers(
+      layer3_states,
+      [],
+      [],
+    )
+
+  
+
     const layerMachine = new LayerEngine()
-    // layerMachine.display()
-    
-    // Create an instance of GraphManager
     const graphManager = new GraphManager(layerMachine.graph);
+
+    layerMachine.layers = [layer1, layer2, layer3]
 
     // Attach class methods to event listeners
     document.getElementById('addnote-btn').addEventListener('click', graphManager.addNode);
@@ -221,6 +279,7 @@ function init(){
     document.getElementById('cleargraph-btn').addEventListener('click', graphManager.clearGraph);
     document.getElementById('save-btn').addEventListener('click', graphManager.saveGraph);
     document.getElementById('addtrans-btn').addEventListener('click', graphManager.makeTransitions);
+    document.getElementById('swaplayer-btn').addEventListener('click', layerMachine.next_layer);
 }
 
 document.addEventListener('DOMContentLoaded', init);
