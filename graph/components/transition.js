@@ -26,7 +26,6 @@ export class TransitionGroup {
         this.transitions = []
     }
 
-
     //this calculate the offset from side to side transitions!
     offset (transition) {
         const index = this.transitions.indexOf(transition)
@@ -76,8 +75,10 @@ export class Transition {
         this.child = child
         this.group = group
         this.highlight = false
+        
 
-        group.transitions.push(this)
+        //this is needed for the version with hashmap
+        // group.transitions.push(this)
     }
 
     draw (ctx) {

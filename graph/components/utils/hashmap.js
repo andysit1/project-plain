@@ -1,7 +1,8 @@
-class PairHashMap {
+export class PairHashMap {
     constructor() {
         this.map = {};
     }
+
 
     /**
      * Creates a canonical key from two values.
@@ -53,25 +54,26 @@ class PairHashMap {
     list() {
         return Object.entries(this.map).map(([key, value]) => {
             const [a, b] = key.split('-');
+            console.log(value)
             return { pair: [a, b], value };
         });
     }
 }
 
-// Example usage
-const pairMap = new PairHashMap();
+// // Example usage
+// const pairMap = new PairHashMap();
 
-// Adding values
-pairMap.set('A', 'B', 'Value 1');
-pairMap.set('B', 'A', 'Value 2'); // This will overwrite Value 1
+// // Adding values
+// pairMap.set('A', 'B', 'Value 1');
+// pairMap.set('B', 'A', 'Value 2'); // This will overwrite Value 1
 
-// Retrieving values
-console.log(pairMap.get('A', 'B')); // Output: 'Value 2'
-console.log(pairMap.get('B', 'A')); // Output: 'Value 2'
+// // Retrieving values
+// console.log(pairMap.get('A', 'B')); // Output: 'Value 2'
+// console.log(pairMap.get('B', 'A')); // Output: 'Value 2'
 
-// Listing all pairs
-console.log(pairMap.list()); // Output: [ { pair: [ 'A', 'B' ], value: 'Value 2' } ]
+// // Listing all pairs
+// console.log(pairMap.list()); // Output: [ { pair: [ 'A', 'B' ], value: 'Value 2' } ]
 
-// Deleting a pair
-pairMap.delete('A', 'B');
-console.log(pairMap.get('A', 'B')); // Output: undefined
+// // Deleting a pair
+// pairMap.delete('A', 'B');
+// console.log(pairMap.get('A', 'B')); // Output: undefined
