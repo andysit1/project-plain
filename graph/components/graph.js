@@ -74,7 +74,6 @@ class Graph {
 
     animation () {
         if (this.needsRepaint()) {
-            console.log("repainting.")
             this.repaint = false
             this.drawScene()
         }
@@ -111,7 +110,7 @@ class Graph {
         
 
         this.drawSelect()
-
+        
     }
 
     drawBackground (ctx) {
