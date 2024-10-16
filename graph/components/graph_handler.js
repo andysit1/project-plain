@@ -9,8 +9,9 @@ const NODE_HEIGHT = 75
 // needs
     // states, id, 
 
+// I think the graph manager should handle the layering aswell, atless have a reference to it.
 export class GraphManager {
-    constructor(graph) {
+    constructor(layerMachine) {
         // Binding the methods to ensure 'this' refers to the class instance
         this.addNode = this.addNode.bind(this);
         this.deleteNode = this.deleteNode.bind(this);
@@ -18,9 +19,15 @@ export class GraphManager {
         this.saveGraph = this.saveGraph.bind(this);
         this.makeTransitions = this.makeTransitions.bind(this);
 
+        this.layerMachine = layerMachine
+
         //reference to graph states
-        this.graph = graph
+        this.graph = layerMachine.graph
         this.previous_select = null
+    }
+
+    getLayerObject(){
+        this.layerMachine.layer
     }
 
     addNode() {
@@ -61,24 +68,31 @@ export class GraphManager {
     }
 
     makeTransitions(){
-        console.log('transitions')
-        console.log(this.graph)
-        if (this.graph.select_active){
-            console.log(this.graph.select_active)
-        }
-        if (this.graph.previous_select_active){
-            console.log(this.graph.previous_select_active)
+    
+        if (!this.graph.select_active || !this.graph.previous_select_active){
+            return 
         }
 
         let state1 = this.graph.select_active
         let state2 = this.graph.previous_select_active
 
+        const layer = this.layerMachine.get_current_layer()
 
-        const t_group = new TransitionGroup(state1, state2)
-        const t = new Transition("1", "transition 1", state2, state1, t_group)
+        const t = new Transition(
+            1,
+            "a auto transitions",
+            state2,
+            state1,
+            layer.ts_manager.getTransitionGroup(state1, state2)
+        )
 
-        t_group.transitions.push(t)
-        this.graph.transitions.push(t)
+        //add the layer to the correct hashmap
+        layer.ts_manager.addTransition(state1, state2, t)
+
+        //update and reload the layer... and then repaint so show the graph
+
+        layer.updateTransitionsAndNestedGroups()
+        this.layerMachine.load_layer(layer)
         this.graph.repaint = true
     }
 

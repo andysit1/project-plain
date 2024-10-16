@@ -23,6 +23,11 @@ const LAYER_ENTER_COLOR = '#559966'
 let graph
 let nestedGroups
 
+
+
+
+
+
 class Graph {
     constructor (canvas) {
         this.canvas = canvas
@@ -35,11 +40,14 @@ class Graph {
         this.select_active = null
         this.previous_select_active = null
 
-
         this.subscribeEvents()
-
         this.repaint = true
         requestAnimationFrame(() => this.animation())
+    }
+
+    // swap the nodes, states, and transitions
+    swap_layer(layer){
+
     }
 
     clear () {
