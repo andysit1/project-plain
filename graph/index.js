@@ -127,13 +127,13 @@ class GraphController {
 //----------
 
 
-// Handle the Layering which passes a reference GraphState into the node, toolbar, 
+// Handle the Layering which passes a reference GraphState into the node, toolbar
+// in truth this class handles the logic of how we update states, transition, and nested
+// everything is done in one canvas
 class LayerEngine {
   constructor () {
     this.machine = new Machine()
     this.next_layer = this.next_layer.bind(this);
-
-
 
     //loads the canvas
     const canvas = document.getElementById('graph')
@@ -159,12 +159,20 @@ class LayerEngine {
     this.graph.repaint = true
   }
 
+  get_current_layer(){
+    if (!this.layers || this.layers.length === 0) {
+      return undefined;
+    }
+    return this.layers[this.layer_incrementer % this.layers.length];
+  }  
+
+  //changes the layer index
   next_layer(){
     this.layer_incrementer += 1
-    let index = this.layer_incrementer % this.layers.length
-
-    if (this.layers[index] != undefined){
-      this.load_layer(this.layers[index])
+    const layer = this.get_current_layer()
+    if (layer != undefined){
+      //will return the 
+      this.load_layer(layer)
     }
   }
 
@@ -182,6 +190,8 @@ class LayerEngine {
     return `State: ${id}|${name}|${rectStr}`;
   }
 
+
+  
 
   load_layer(data) {
     console.log(data.states)
@@ -204,9 +214,12 @@ class LayerEngine {
   }
 
 
-  setLayer(encoded_data){
-    console.log(encoded_data)
-    encoded_data.states
+
+
+
+  // in init, we want to set the amt of layers for the program
+  set_layer(layer){
+    this.layers.push(layer)
   }
 
   display(){
@@ -219,14 +232,32 @@ class LayerEngine {
   }
 }
 
+import { TransitionGroupManager } from "./components/th.js"
+
 
 //layers class will hold states, transitions, and groups
 class Layers{
   constructor(states, transition, nest){
+    //transition group binding (each layer needs one)
+    this.ts_manager = new TransitionGroupManager()
+
+    // variables
     this.states = states
     this.transition = transition
     this.nested_group = nest
   }
+
+  //updateTransitions and updateNestedGroup should be called each time a new transition is added
+  updateTransitionsAndNestedGroups(){
+    [this.transition, this.nested_group]  = this.ts_manager.listTransitionsAndNestedGroupsInArray()
+    this.displayTransitions()
+  }
+
+  displayTransitions(){
+    console.log(this.transition)
+    console.log(this.nested_group)
+  }
+
 }
 
 
@@ -266,13 +297,14 @@ function init(){
       [],
     )
 
-  
-
     const layerMachine = new LayerEngine()
-    const graphManager = new GraphManager(layerMachine.graph);
+    const graphManager = new GraphManager(layerMachine);
 
+    
+    //this has to be set through api push
     layerMachine.layers = [layer1, layer2, layer3]
 
+      
     // Attach class methods to event listeners
     document.getElementById('addnote-btn').addEventListener('click', graphManager.addNode);
     document.getElementById('deletenote-btn').addEventListener('click', graphManager.deleteNode);

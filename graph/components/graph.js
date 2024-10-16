@@ -74,8 +74,9 @@ class Graph {
 
     animation () {
         if (this.needsRepaint()) {
-        this.repaint = false
-        this.drawScene()
+            console.log("repainting.")
+            this.repaint = false
+            this.drawScene()
         }
 
         requestAnimationFrame(() => this.animation())

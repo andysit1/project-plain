@@ -96,11 +96,23 @@ export class TransitionGroupManager {
      * Lists all transitions.
      * @returns {Array} An array of all transitions.
      */
-    listTransitions() {
+    listTransitionsDict() {
         return Object.entries(this.transitions_map.map).map(([key, grp]) => ({
             grp : grp,
             transitions: grp.transitions ? grp.transitions : [],
         }));
+    }
+
+    listTransitionsAndNestedGroupsInArray(){
+        let tmpTransition = []
+        let tmpNested = []
+       
+        Object.entries(this.transitions_map.map).forEach(([key, grp]) => {
+            tmpTransition.push(grp.transitions);  // Push the transitions array
+            tmpNested.push(grp);                  // Push the group itself
+        })
+
+        return [tmpTransition.flat(), tmpNested.flat()]
     }
 }
 
@@ -119,68 +131,73 @@ export class TransitionGroupManager {
     // else
         // push transition to the returned group
 
-const state1 = new State(
-    1, "state1", undefined
-)
+// const state1 = new State(
+//     1, "state1", undefined
+// )
 
-const state2 = new State(
-    2, "state2", undefined
-)
-
-
-const state3 = new State(
-    3, "state3", undefined
-)
-
-const state4 = new State(
-    4, "state4", undefined
-)
+// const state2 = new State(
+//     2, "state2", undefined
+// )
 
 
-//this is a sample of how the function will look in the real system
-function createTransition(state1, state2){
-    if (state1 == state2){
-        //should not be able to create transition between each other
-        return
-    }
+// const state3 = new State(
+//     3, "state3", undefined
+// )
 
-    //define a new transition with the given properties
-    const t = new Transition(
-        1,
-        "a auto transitions",
-        state1,
-        state2,
-        transitionManager.getTransitionGroup(state1, state2)
-    )
+// const state4 = new State(
+//     4, "state4", undefined
+// )
+
+
+// //this is a sample of how the function will look in the real system
+// function createTransition(state1, state2){
+//     if (state1 == state2){
+//         //should not be able to create transition between each other
+//         return
+//     }
+
+//     //define a new transition with the given properties
+//     const t = new Transition(
+//         1,
+//         "a auto transitions",
+//         state1,
+//         state2,
+//         transitionManager.getTransitionGroup(state1, state2)
+//     )
     
-    //passing the state1 and state2 is redundant, as it's already in t
-    transitionManager.addTransition(state1, state2, t)
-}
+//     //passing the state1 and state2 is redundant, as it's already in t
+//     transitionManager.addTransition(state1, state2, t)
+// }
 
-// Example usage
-const transitionManager = new TransitionGroupManager();
+// // Example usage
+// const transitionManager = new TransitionGroupManager();
 
-//the power of the transition Manager is that now we dont need to link the groups together
-// we can fetch the group through the transition manager
-// next up make the id just the length of the total size of transitions 
-// reduce the params to just the name of transition...
+// //the power of the transition Manager is that now we dont need to link the groups together
+// // we can fetch the group through the transition manager
+// // next up make the id just the length of the total size of transitions 
+// // reduce the params to just the name of transition...
 
-createTransition(state1, state2)
-createTransition(state3, state4)
-createTransition(state4, state3)
-createTransition(state1, state4)
-createTransition(state4, state1)
+// createTransition(state1, state2)
+// createTransition(state3, state4)
+// createTransition(state4, state3)
+// createTransition(state1, state4)
+// createTransition(state4, state1)
 
-console.log("_________")
-console.log("Transition List")
-
-
-const list_trans = transitionManager.listTransitions()
-console.log(list_trans)
-
-console.log("_________")
-console.log("Transition State List")
+// console.log("_________")
+// console.log("Transition List")
 
 
-const list_state = transitionManager.listStateTransition()
-console.log(list_state)
+// const list_trans = transitionManager.listTransitionsDict()
+// console.log(list_trans)
+
+// console.log("_________")
+
+// console.log("listTransitionsAndNestedGroupsInArray List -> [transitions, nested]")
+
+// var transition = [];
+// var nested_group = [];
+
+// [transition, nested_group] = transitionManager.listTransitionsAndNestedGroupsInArray()
+
+// console.log(transition)
+// console.log(nested_group)
