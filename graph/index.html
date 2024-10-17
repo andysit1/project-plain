@@ -12,16 +12,19 @@
 
 <body>
     <div id="content">
-    
+        <div style="position: absolute; right: 70px; top: 0px;">
+            <div id="textOverlay" style="position: absolute; top: 20px; left: 20px; color: white; background: rgba(0, 0, 0, 0.5); padding: 10px; font-size: 10px;">
+                10
+            </div>
+        </div>
+
         <div id="toolbar">
             <button id="addnote-btn">Add Node</button>
             <button id="deletenote-btn">Delete Node</button>
             <button id="cleargraph-btn">Clear Graph</button>
             <button id="save-btn">Save</button>
             <button id="addtrans-btn">Add Transition</button>
-
             <button id="swaplayer-btn">Swap Layers</button>
-
         </div>
           
         <canvas id="graph">
@@ -29,6 +32,10 @@
             web application. We recommend using Firefox or Chrome with JavaScript
             enabled.
         </canvas>
+
+        
+
+
     </div>
 </body>
 
