@@ -24,10 +24,6 @@ let graph
 let nestedGroups
 
 
-
-
-
-
 class Graph {
     constructor (canvas) {
         this.canvas = canvas
