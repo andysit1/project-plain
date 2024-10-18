@@ -19,6 +19,8 @@ export class GraphManager {
         this.saveGraph = this.saveGraph.bind(this);
         this.makeTransitions = this.makeTransitions.bind(this);
 
+
+        //handles the 
         this.layerMachine = layerMachine
 
         //reference to graph states
@@ -46,8 +48,6 @@ export class GraphManager {
         this.graph.states.push(stateNode)
         this.graph.repaint = true
     }
-
-
 
     clearGraph() {
         console.log("Clearing Graph");

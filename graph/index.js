@@ -214,9 +214,6 @@ class LayerEngine {
   }
 
 
-
-
-
   // in init, we want to set the amt of layers for the program
   set_layer(layer){
     this.layers.push(layer)
