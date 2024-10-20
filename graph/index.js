@@ -38,8 +38,28 @@ function add_node(states){
         
     const stateNode = new State(states.length, " Node", rect)
     states.push(stateNode)
-
 }
+
+
+
+//TODO CRUD METHODS , toolbar class?
+function add_transition(transitions){
+  //create a base nod
+  let startX = randomInt(0, 400)
+  let startY = randomInt(0, 400)
+
+  const rect = new Rect(
+    startX,
+    startY,
+    NODE_WIDTH,
+    NODE_HEIGHT
+  )
+      
+  const stateNode = new State(states.length, " Node", rect)
+  states.push(stateNode)
+}
+
+
 
 function delete_node(states){
   let targetStates
@@ -103,70 +123,40 @@ class GraphController {
 }
 //----------
 
-// Handle the Layering which passes a reference GraphState into the node, toolbar, 
+
+// Handle the Layering which passes a reference GraphState into the node, toolbar
+// in truth this class handles the logic of how we update states, transition, and nested
+// everything is done in one canvas
 class LayerEngine {
   constructor () {
     this.machine = new Machine()
-
+    this.next_layer = this.next_layer.bind(this)
     //loads the canvas
     const canvas = document.getElementById('graph')
     this.graph = new Graph(canvas)
-  
-  
-    let startX = 400
-    let startY = 400
 
-    let originX = 0
-    let originY = 0
 
-    const rect = new Rect(
-        startX,
-        startY,
-        NODE_WIDTH,
-        NODE_HEIGHT
-      )
+    this.layer_incrementer = 0
+    this.layers = []
     
-
-    const rect2 = new Rect(
-      originX,
-      originY,
-      NODE_WIDTH,
-      NODE_HEIGHT
-    )
-
-    const stateNode = new State(0, "Home", rect)
-    const stateNodeOne = new State(1, "Origin", rect2)
-    stateNode.activeState = true
-
-    this.graph.states.push(stateNode)  
-    this.graph.states.push(stateNodeOne)
-    this.graph.repaint = true
-  
-
-    add_node(this.graph.states)
-    add_node(this.graph.states)
-    add_node(this.graph.states)
-    add_node(this.graph.states)
-
-    //handles the offset and array calcuations ()
-    const t_group = new TransitionGroup(stateNode, stateNodeOne)
-
-                          // transition id name, connections state1 connection state2, and layer
-    const t = new Transition("1", "transition 1", stateNode, stateNodeOne, t_group)
-   
-    t_group.transitions.push(t)
-    this.graph.transitions.push(t)
-
-
   }
 
+  get_layer_index(){
+    return this.layer_incrementer % this.layers.length
+  }
 
-  // Add the Info Window Preview HERE ---- uses states.graphs...
+  //changes the layer index
+  next_layer(){
+    //clear selections for new layer
+    this.graph.reset_selectors()
   
-
-
-  //------
-
+    this.layer_incrementer += 1
+    const layer = this.layers[this.get_layer_index()]
+    if (layer != undefined){
+      //will return the 
+      this.load_layer(layer)
+    }
+  }
   encodeTransition(transition) {
     // Encode a transition into a string
     // const { id, name, state1, state2 } = transition;
@@ -181,9 +171,21 @@ class LayerEngine {
     return `State: ${id}|${name}|${rectStr}`;
   }
 
-  load_layer(encoded_data) {
-    console.log(encoded_data)
-  }
+
+  load_layer(data) {
+    // console.log(data.states)
+    // console.log(data.transition)
+    // console.log(data.nested_group)
+
+    //change layer variables
+    this.graph.states = data.states
+    this.graph.transitions = data.transition
+    this.graph.nestedGroups = data.nested_group
+
+    //update new layer level
+    this.graph.current_layer = this.get_layer_index() + 1
+    this.graph.repaint = true
+  } 
 
   swap_layer() {
     if (!this.machine.nextLayer) {return}
@@ -193,12 +195,9 @@ class LayerEngine {
     this.load_layer("loading encoded data")
   }
 
-
-  setLayer(encoded_data){
-
-    this()
-
-    console.log(encoded_data)
+  // in init, we want to set the amt of layers for the program
+  set_layer(layer){
+    this.layers.push(layer)
   }
 
   display(){
@@ -209,31 +208,83 @@ class LayerEngine {
     console.log("Transisitions", transitionStrings)
   }
 }
+import { TransitionGroupManager } from "./components/th.js"
 
-export function updatePreview() {
-  console.log("Updating...")
-  const ele = document.getElementById("node-name")
-  
+
+//layers class will hold states, transitions, and groups
+class Layers{
+  constructor(states, transition, nest){
+    //transition group binding (each layer needs one)
+    this.ts_manager = new TransitionGroupManager()
+
+    // variables
+    this.states = states
+    this.transition = transition
+    this.nested_group = nest
+  }
+
+  //updateTransitions and updateNestedGroup should be called each time a new transition is added
+  updateTransitionsAndNestedGroups(){
+    [this.transition, this.nested_group]  = this.ts_manager.listTransitionsAndNestedGroupsInArray()
+    this.displayTransitions()
+  }
+
+  displayTransitions(){
+    console.log(this.transition)
+    console.log(this.nested_group)
+  }
+
 }
 
 function init(){
-    const layerMachine = new LayerEngine()
-    layerMachine.display()
-    
-    // Create an instance of GraphManager
-    const graphManager = new GraphManager(layerMachine.graph);
 
+    const layer1_states = []
+    add_node(layer1_states)
+    add_node(layer1_states)
+    add_node(layer1_states)
+    add_node(layer1_states)
+    const layer2_states = []
+    add_node(layer2_states)
+    add_node(layer2_states)
+
+    const layer3_states = []
+    add_node(layer3_states)
+
+    let layer1 = new Layers(
+      layer1_states,
+      [],
+      [],
+    )
+
+    let layer2 = new Layers(
+      layer2_states,
+      [],
+      [],
+    )
+
+    let layer3 = new Layers(
+      layer3_states,
+      [],
+      [],
+    )
+
+    const layerMachine = new LayerEngine()
+    const graphManager = new GraphManager(layerMachine);
+
+    
+    //this has to be set through api push
+    layerMachine.layers = [layer1, layer2, layer3]
+    layerMachine.load_layer(layer1)
+      
     // Attach class methods to event listeners
     document.getElementById('addnote-btn').addEventListener('click', graphManager.addNode);
     document.getElementById('deletenote-btn').addEventListener('click', graphManager.deleteNode);
     document.getElementById('cleargraph-btn').addEventListener('click', graphManager.clearGraph);
     document.getElementById('save-btn').addEventListener('click', graphManager.saveGraph);
     document.getElementById('addtrans-btn').addEventListener('click', graphManager.makeTransitions);
-    document.getElementById('update-state').addEventListener('click', updatePreview);
+    document.getElementById('swaplayer-btn').addEventListener('click', layerMachine.next_layer);
 
 }
-
-
 
 // Make the DIV element draggable:
 dragElement(document.getElementById("mydiv"));
@@ -278,5 +329,6 @@ function dragElement(elmnt) {
     document.onmousemove = null;
   }
 }
+
 
 document.addEventListener('DOMContentLoaded', init);

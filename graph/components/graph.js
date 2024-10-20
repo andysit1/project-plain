@@ -35,12 +35,25 @@ class Graph {
 
         this.select_active = null
         this.previous_select_active = null
-
-
+        this.current_layer = 1
         this.subscribeEvents()
         this.repaint = true
         requestAnimationFrame(() => this.animation())
     }
+
+    // swap the nodes, states, and transitions
+    swap_layer(layer){
+
+        this.subscribeEvents()
+
+        this.repaint = true
+        requestAnimationFrame(() => this.animation())
+    }
+
+    reset_selectors(){
+        this.previous_select_active = null
+        this.select_active = null
+    }   
 
     clear () {
         this.states = []
@@ -66,11 +79,16 @@ class Graph {
 
     animation () {
         if (this.needsRepaint()) {
-        this.repaint = false
-        this.drawScene()
+            this.repaint = false
+            this.drawScene()
         }
 
         requestAnimationFrame(() => this.animation())
+    }
+
+    drawLayerCounter(){
+        const layerLayout = document.getElementById('textOverlay')
+        layerLayout.innerHTML = this.current_layer
     }
 
     //draws the selected graph node! keeps select until diff is chosen
@@ -101,7 +119,8 @@ class Graph {
         for (const trans of this.transitions) { trans.drawHover(ctx) }
         
 
-        this.drawSelect()
+        this.drawSelect()       
+        this.drawLayerCounter() 
     }
 
     drawBackground (ctx) {
@@ -208,7 +227,6 @@ class Graph {
 
         if (!targetState) { return }
         
-
         //added for graph obj to know the state which is selected..
         if (this.select_active !=  null){
             this.previous_select_active = this.select_active
@@ -233,3 +251,4 @@ class Graph {
 
 
 export default Graph
+
