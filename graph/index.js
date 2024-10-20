@@ -138,25 +138,14 @@ class LayerEngine {
     //loads the canvas
     const canvas = document.getElementById('graph')
     this.graph = new Graph(canvas)
-    
   
-    let startX = 400
-    let startY = 400
 
     this.layer_incrementer = 0
-    this.layers = [1, 3, 4, 5]
+    this.layers = []
+  }
 
-    const rect = new Rect(
-        startX,
-        startY,
-        NODE_WIDTH,
-        NODE_HEIGHT
-      )
-    
-
-    const stateNode = new State(0, "Home", rect)
-    this.graph.states.push(stateNode)  
-    this.graph.repaint = true
+  get_layer_index(){
+    return this.layer_incrementer % this.layers.length
   }
 
   get_current_layer(){
@@ -168,6 +157,9 @@ class LayerEngine {
 
   //changes the layer index
   next_layer(){
+    //clear selections for new layer
+    this.graph.reset_selectors()
+  
     this.layer_incrementer += 1
     const layer = this.get_current_layer()
     if (layer != undefined){
@@ -191,17 +183,18 @@ class LayerEngine {
   }
 
 
-  
-
   load_layer(data) {
-    console.log(data.states)
-    console.log(data.transition)
-    console.log(data.nested_group)
+    // console.log(data.states)
+    // console.log(data.transition)
+    // console.log(data.nested_group)
 
+    //change layer variables
     this.graph.states = data.states
     this.graph.transitions = data.transition
     this.graph.nestedGroups = data.nested_group
 
+    //update new layer level
+    this.graph.current_layer = this.get_layer_index() + 1
     this.graph.repaint = true
   } 
 
@@ -212,7 +205,6 @@ class LayerEngine {
     this.graph.repaint = true
     this.load_layer("loading encoded data")
   }
-
 
   // in init, we want to set the amt of layers for the program
   set_layer(layer){
@@ -309,6 +301,10 @@ function init(){
     document.getElementById('save-btn').addEventListener('click', graphManager.saveGraph);
     document.getElementById('addtrans-btn').addEventListener('click', graphManager.makeTransitions);
     document.getElementById('swaplayer-btn').addEventListener('click', layerMachine.next_layer);
-}
+    
+    //required to load the layer on init
+    layerMachine.load_layer(layer1)
+    layerMachine.graph.repaint = true
+  }
 
 document.addEventListener('DOMContentLoaded', init);
