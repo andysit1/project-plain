@@ -131,6 +131,7 @@ class LayerEngine {
   constructor () {
     this.machine = new Machine()
     this.next_layer = this.next_layer.bind(this)
+    this.updateLayer = this.updateLayer.bind(this)
     //loads the canvas
     const canvas = document.getElementById('graph')
     this.graph = new Graph(canvas)
@@ -141,9 +142,23 @@ class LayerEngine {
     
   }
 
+
+
   get_layer_index(){
     return this.layer_incrementer % this.layers.length
   }
+
+  get_current_layer(){
+    return this.layers[this.get_layer_index()]
+  }
+  
+
+  updateLayer(){
+    const layer = this.get_current_layer()
+    console.log(layer)
+    layer.updateName()
+  }
+
 
   //changes the layer index
   next_layer(){
@@ -223,6 +238,25 @@ class Layers{
     this.nested_group = nest
   }
 
+  getStateRef(id){
+    console.log("Update", id)
+    
+    this.states.forEach(element => {
+      console.log(element.id, id)
+
+      if (element.id == id.trim()){ //why is this not updating my element?
+        element.name = document.getElementById("node-name").value
+      }
+    });
+  }
+
+  updateName(){
+    const id = document.getElementById("node-id").value
+    const to_change = document.getElementById("node-name").value
+
+    this.getStateRef(id)    
+  }
+
   //updateTransitions and updateNestedGroup should be called each time a new transition is added
   updateTransitionsAndNestedGroups(){
     [this.transition, this.nested_group]  = this.ts_manager.listTransitionsAndNestedGroupsInArray()
@@ -283,6 +317,7 @@ function init(){
     document.getElementById('save-btn').addEventListener('click', graphManager.saveGraph);
     document.getElementById('addtrans-btn').addEventListener('click', graphManager.makeTransitions);
     document.getElementById('swaplayer-btn').addEventListener('click', layerMachine.next_layer);
+    document.getElementById('update-state').addEventListener('click', layerMachine.updateLayer)
 
 }
 
@@ -302,7 +337,7 @@ function dragElement(elmnt) {
   function dragMouseDown(e) {
     e = e || window.event;
     e.preventDefault();
-    // get the mouse cursor position at startup:
+  // get the mouse cursor position at startup:
     pos3 = e.clientX;
     pos4 = e.clientY;
     document.onmouseup = closeDragElement;
