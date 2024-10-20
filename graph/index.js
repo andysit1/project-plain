@@ -212,6 +212,8 @@ class LayerEngine {
 
 export function updatePreview() {
   console.log("Updating...")
+  const ele = document.getElementById("node-name")
+  
 }
 
 function init(){
