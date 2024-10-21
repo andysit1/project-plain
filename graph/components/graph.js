@@ -1,4 +1,5 @@
 
+import { updateWindow } from "./info_window.js"
 
 
 
@@ -23,11 +24,6 @@ const LAYER_ENTER_COLOR = '#559966'
 let graph
 let nestedGroups
 
-
-
-
-
-
 class Graph {
     constructor (canvas) {
         this.canvas = canvas
@@ -39,10 +35,7 @@ class Graph {
 
         this.select_active = null
         this.previous_select_active = null
-
-
         this.current_layer = 1
-
         this.subscribeEvents()
         this.repaint = true
         requestAnimationFrame(() => this.animation())
@@ -51,6 +44,10 @@ class Graph {
     // swap the nodes, states, and transitions
     swap_layer(layer){
 
+        this.subscribeEvents()
+
+        this.repaint = true
+        requestAnimationFrame(() => this.animation())
     }
 
     reset_selectors(){
@@ -233,6 +230,7 @@ class Graph {
         //added for graph obj to know the state which is selected..
         if (this.select_active !=  null){
             this.previous_select_active = this.select_active
+            updateWindow(this.select_active)
         }
         this.select_active = targetState
         
@@ -253,3 +251,4 @@ class Graph {
 
 
 export default Graph
+

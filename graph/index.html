@@ -27,15 +27,59 @@
             <button id="swaplayer-btn">Swap Layers</button>
         </div>
           
+
+           <!-- Draggable DIV   https://www.w3schools.com/howto/howto_js_draggable.asp   -->
+          <!-- Draggable DIV -->
+          <div id="mydiv">
+            <!-- Include a header DIV with the same name as the draggable DIV, followed by "header" -->
+            <div id="mydivheader">Click here to move</div>
+
+            <!-- Node properties preview -->
+            <div id="propertiespreview">
+                <h3>Node Properties</h3>
+                <label for="node-id">ID:</label>
+                <input type="text" id="node-id" value="Node1">
+                
+                <label for="node-name">Name:</label>
+                <input type="text" id="node-name" value="Sample Node">
+                
+                <button id="update-state">Update</button>
+            </div>
+
+            <!-- Code preview section -->
+            <div id="codepreview">
+                <h3>Code Preview</h3>
+                <p id="node-code">
+                    encodeTransition(transition) {
+                        // Encode a transition into a string
+                        // const { id, name, state1, state2 } = transition;
+                        // #1,Name
+                        return `Transition: ${transition.id}|${transition.name}|${transition.parent.id},${transition.child.id}`;
+                      }
+                    
+                      encodeState(state) {
+                        // Encode a state into a string
+                        const { id, name, rect } = state;
+                        const rectStr = `${rect.x},${rect.y},${rect.width},${rect.height}`;
+                        return `State: ${id}|${name}|${rectStr}`;
+                      }
+                    
+                      load_layer(encoded_data) {
+                        console.log(encoded_data)
+                      }
+                </p>
+            </div>
+
+            <p>Explanation</p>
+        </div>
+
+
+        
         <canvas id="graph">
             Your browser does not support HTML5 canvas and is unable to view this
             web application. We recommend using Firefox or Chrome with JavaScript
             enabled.
         </canvas>
-
-        
-
-
     </div>
 </body>
 

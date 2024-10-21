@@ -4,9 +4,6 @@ import { Rect, State } from "./components/node.js"
 import { randomInt } from "./utils/nums.js"
 import { GraphManager } from "./components/graph_handler.js"
 
-
-
-
 // update this to fit my requirements 
 // test wait fake data..
 
@@ -133,27 +130,35 @@ class GraphController {
 class LayerEngine {
   constructor () {
     this.machine = new Machine()
-    this.next_layer = this.next_layer.bind(this);
-
+    this.next_layer = this.next_layer.bind(this)
+    this.updateLayer = this.updateLayer.bind(this)
     //loads the canvas
     const canvas = document.getElementById('graph')
     this.graph = new Graph(canvas)
-  
+
 
     this.layer_incrementer = 0
     this.layers = []
+    
   }
+
+
 
   get_layer_index(){
     return this.layer_incrementer % this.layers.length
   }
 
   get_current_layer(){
-    if (!this.layers || this.layers.length === 0) {
-      return undefined;
-    }
-    return this.layers[this.layer_incrementer % this.layers.length];
-  }  
+    return this.layers[this.get_layer_index()]
+  }
+  
+
+  updateLayer(){
+    const layer = this.get_current_layer()
+    console.log(layer)
+    layer.updateName()
+  }
+
 
   //changes the layer index
   next_layer(){
@@ -161,13 +166,12 @@ class LayerEngine {
     this.graph.reset_selectors()
   
     this.layer_incrementer += 1
-    const layer = this.get_current_layer()
+    const layer = this.layers[this.get_layer_index()]
     if (layer != undefined){
       //will return the 
       this.load_layer(layer)
     }
   }
-
   encodeTransition(transition) {
     // Encode a transition into a string
     // const { id, name, state1, state2 } = transition;
@@ -215,12 +219,10 @@ class LayerEngine {
     const stateStrings = this.graph.states.map(state => this.encodeState(state));
     const transitionStrings = this.graph.transitions.map(t => this.encodeTransition(t));
     
-    
     console.log("State", stateStrings)
     console.log("Transisitions", transitionStrings)
   }
 }
-
 import { TransitionGroupManager } from "./components/th.js"
 
 
@@ -236,6 +238,25 @@ class Layers{
     this.nested_group = nest
   }
 
+  getStateRef(id){
+    console.log("Update", id)
+    
+    this.states.forEach(element => {
+      console.log(element.id, id)
+
+      if (element.id == id.trim()){ //why is this not updating my element?
+        element.name = document.getElementById("node-name").value
+      }
+    });
+  }
+
+  updateName(){
+    const id = document.getElementById("node-id").value
+    const to_change = document.getElementById("node-name").value
+
+    this.getStateRef(id)    
+  }
+
   //updateTransitions and updateNestedGroup should be called each time a new transition is added
   updateTransitionsAndNestedGroups(){
     [this.transition, this.nested_group]  = this.ts_manager.listTransitionsAndNestedGroupsInArray()
@@ -247,11 +268,6 @@ class Layers{
     console.log(this.nested_group)
   }
 
-}
-
-
-function placeholder_layer(){
-  console.log("swap")
 }
 
 function init(){
@@ -292,7 +308,7 @@ function init(){
     
     //this has to be set through api push
     layerMachine.layers = [layer1, layer2, layer3]
-
+    layerMachine.load_layer(layer1)
       
     // Attach class methods to event listeners
     document.getElementById('addnote-btn').addEventListener('click', graphManager.addNode);
@@ -301,10 +317,53 @@ function init(){
     document.getElementById('save-btn').addEventListener('click', graphManager.saveGraph);
     document.getElementById('addtrans-btn').addEventListener('click', graphManager.makeTransitions);
     document.getElementById('swaplayer-btn').addEventListener('click', layerMachine.next_layer);
-    
-    //required to load the layer on init
-    layerMachine.load_layer(layer1)
-    layerMachine.graph.repaint = true
+    document.getElementById('update-state').addEventListener('click', layerMachine.updateLayer)
+
+}
+
+// Make the DIV element draggable:
+dragElement(document.getElementById("mydiv"));
+
+function dragElement(elmnt) {
+  var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+  if (document.getElementById(elmnt.id + "header")) {
+    // if present, the header is where you move the DIV from:
+    document.getElementById(elmnt.id + "header").onmousedown = dragMouseDown;
+  } else {
+    // otherwise, move the DIV from anywhere inside the DIV:
+    elmnt.onmousedown = dragMouseDown;
   }
+
+  function dragMouseDown(e) {
+    e = e || window.event;
+    e.preventDefault();
+  // get the mouse cursor position at startup:
+    pos3 = e.clientX;
+    pos4 = e.clientY;
+    document.onmouseup = closeDragElement;
+    // call a function whenever the cursor moves:
+    document.onmousemove = elementDrag;
+  }
+
+  function elementDrag(e) {
+    e = e || window.event;
+    e.preventDefault();
+    // calculate the new cursor position:
+    pos1 = pos3 - e.clientX;
+    pos2 = pos4 - e.clientY;
+    pos3 = e.clientX;
+    pos4 = e.clientY;
+    // set the element's new position:
+    elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+    elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+  }
+
+  function closeDragElement() {
+    // stop moving when mouse button is released:
+    document.onmouseup = null;
+    document.onmousemove = null;
+  }
+}
+
 
 document.addEventListener('DOMContentLoaded', init);
