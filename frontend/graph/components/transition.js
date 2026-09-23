@@ -62,6 +62,7 @@ export class TransitionGroup {
 
     normalizeDir (dir) {
         const mag = Math.sqrt(dir.x * dir.x + dir.y * dir.y)
+        if (mag === 0) { dir.x = 0; dir.y = 1; return } // stacked nodes: pick any direction, never NaN
         dir.x /= mag
         dir.y /= mag
     }
@@ -82,9 +83,7 @@ export class Transition {
     }
 
     draw (ctx) {
-        if (this.parent.layer !== graph.activeLayer ||
-                this.child.layer !== graph.activeLayer) { return }
-
+        if (this.parent === this.child) { return } // self-loops aren't drawable yet
         const offset = this.group.offset(this)
 
         const a =
@@ -123,23 +122,19 @@ export class Transition {
     }
 
     drawHover (ctx) {
-        if (this.parent.layer !== graph.activeLayer ||
-                this.child.layer !== graph.activeLayer) { return }
-
         if (!this.highlight || !this.name) { return }
 
         ctx.fillStyle = NODE_TEXT_COLOR
         ctx.font = LINE_TEXT_FONT
         ctx.textAlign = 'left'
         ctx.textBaseline = 'middle'
+        if (!this.mousePos) { return }
         ctx.fillText(this.name, this.mousePos.x, this.mousePos.y - 10)
     }
 
     //freaky math what
     isInBounds (x, y) {
-        if (this.parent.layer !== graph.activeLayer ||
-                this.child.layer !== graph.activeLayer) { return false }
-
+        if (this.parent === this.child) { return false }
         function sqr (x) { return x * x }
         function dist2 (v, w) { return sqr(v.x - w.x) + sqr(v.y - w.y) }
         function distToSegmentSquared (p, v, w) {
@@ -175,7 +170,7 @@ export class Transition {
 
     arrowBase (a, b) {
         const dir = { x: b.x - a.x, y: b.y - a.y }
-        const mag = Math.sqrt(dir.x * dir.x + dir.y * dir.y)
+        const mag = Math.sqrt(dir.x * dir.x + dir.y * dir.y) || 1
         dir.x /= mag
         dir.y /= mag
 

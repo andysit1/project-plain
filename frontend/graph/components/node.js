@@ -12,6 +12,11 @@ const LINE_HIGHLIGHT = '#888888'
 const LINE_TEXT_FONT = '12px Calibri'
 const LAYER_ENTER_COLOR = '#559966'
 
+// Monotonic ids: `states.length` repeats ids once a node is deleted.
+let nextId = 0
+export function nextNodeId () { return nextId++ }
+export function reserveNodeId (id) { if (typeof id === 'number' && id >= nextId) { nextId = id + 1 } }
+
 export class Rect {
     constructor (x, y, w, h) {
       this.x = x
@@ -39,7 +44,7 @@ export class State {
     }
 
     updateName(name){
-        this.nane = name
+        this.name = name
     }
 
     draw (ctx) {
@@ -56,7 +61,18 @@ export class State {
         ctx.font = NODE_TEXT_FONT
         ctx.textAlign = 'center'
         ctx.textBaseline = 'middle'
-        ctx.fillText(this.name, this.rect.x + this.rect.w / 2, this.rect.y + this.rect.h / 2)
+        ctx.fillText(this.fitText(ctx, String(this.name), this.rect.w - 16), this.rect.x + this.rect.w / 2, this.rect.y + this.rect.h / 2)
+    }
+
+    // shorten with an ellipsis so long names (function signatures) stay inside the node
+    fitText (ctx, text, maxWidth) {
+        if (ctx.measureText(text).width <= maxWidth) { return text }
+        let lo = 0, hi = text.length
+        while (lo < hi) {
+            const mid = (lo + hi + 1) >> 1
+            if (ctx.measureText(text.slice(0, mid) + '…').width <= maxWidth) { lo = mid } else { hi = mid - 1 }
+        }
+        return text.slice(0, lo) + '…'
     }
 
     drawActive (ctx) {
@@ -92,10 +108,9 @@ export class State {
         ctx.closePath()
     }
 
+    // hit box = the drawn box (the old +8px margin made neighbours steal clicks)
     isInBounds (x, y) {
-        const r = NODE_CORNER_RADIUS
-
-        return x >= this.rect.x - r && x < this.rect.x + this.rect.w + r && y >= this.rect.y - r &&
-                y < this.rect.y + this.rect.h + r
+        return x >= this.rect.x && x < this.rect.x + this.rect.w &&
+                y >= this.rect.y && y < this.rect.y + this.rect.h
     }
 }

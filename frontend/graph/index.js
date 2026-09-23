@@ -1,21 +1,11 @@
 import Graph from "./components/graph.js"
 import { Transition, TransitionGroup } from "./components/transition.js"
-import { Rect, State } from "./components/node.js"
-import { randomInt } from "./utils/nums.js"
+import { Rect, State, nextNodeId } from "./components/node.js"
+import { findFreeSpot } from "./utils/placement.js"
 import { GraphManager } from "./components/graph_handler.js"
 
 // update this to fit my requirements 
 // test wait fake data..
-
-function onConnected (packet) {
-  console.log('Bot connected.')
-
-  graph.clear()
-  loadNestedGroups(packet)
-  loadStates(packet)
-  loadTransitions(packet)
-  graph.repaint = true
-}
 
 const NODE_WIDTH = 150
 const NODE_HEIGHT = 75
@@ -23,52 +13,12 @@ const NODE_HEIGHT = 75
 //let's create a class which holds the target state and represent the 
 //connection to toolbar html.. #GOOGLE THIS
 
-//TODO CRUD METHODS , toolbar class?
-function add_node(states){
-    //create a base nod
-    let startX = randomInt(0, 400)
-    let startY = randomInt(0, 400)
-
-    const rect = new Rect(
-      startX,
-      startY,
-      NODE_WIDTH,
-      NODE_HEIGHT
-    )
-        
-    const stateNode = new State(states.length, " Node", rect)
-    states.push(stateNode)
+// place a node in the nearest free slot to `center` (never stacked on another node)
+function add_node(states, center, name = "Node", obstacles = []){
+    const spot = findFreeSpot(states.concat(obstacles), NODE_WIDTH, NODE_HEIGHT, center)
+    const rect = new Rect(spot.x, spot.y, NODE_WIDTH, NODE_HEIGHT)
+    states.push(new State(nextNodeId(), name, rect))
 }
-
-
-
-//TODO CRUD METHODS , toolbar class?
-function add_transition(transitions){
-  //create a base nod
-  let startX = randomInt(0, 400)
-  let startY = randomInt(0, 400)
-
-  const rect = new Rect(
-    startX,
-    startY,
-    NODE_WIDTH,
-    NODE_HEIGHT
-  )
-      
-  const stateNode = new State(states.length, " Node", rect)
-  states.push(stateNode)
-}
-
-
-
-function delete_node(states){
-  let targetStates
-  for (const state of states) {
-    if (state.isInBounds(x, y)) { targetState = state }
-  }
-}
-
-
 
 // Class managing transitions between different game states.
 class Machine {
@@ -153,10 +103,16 @@ class LayerEngine {
   }
   
 
+  // rename the node that is actually selected, then repaint so the change shows immediately
   updateLayer(){
-    const layer = this.get_current_layer()
-    console.log(layer)
-    layer.updateName()
+    const name = document.getElementById("node-name").value
+    const selected = this.graph.select_active
+    if (selected) {
+      selected.updateName(name)
+    } else {
+      this.get_current_layer().updateName()
+    }
+    this.graph.repaint = true
   }
 
 
@@ -182,7 +138,7 @@ class LayerEngine {
   encodeState(state) {
     // Encode a state into a string
     const { id, name, rect } = state;
-    const rectStr = `${rect.x},${rect.y},${rect.width},${rect.height}`;
+    const rectStr = `${rect.x},${rect.y},${rect.w},${rect.h}`;
     return `State: ${id}|${name}|${rectStr}`;
   }
 
@@ -201,14 +157,6 @@ class LayerEngine {
     this.graph.current_layer = this.get_layer_index() + 1
     this.graph.repaint = true
   } 
-
-  swap_layer() {
-    if (!this.machine.nextLayer) {return}
-
-    this.graph.clear()
-    this.graph.repaint = true
-    this.load_layer("loading encoded data")
-  }
 
   // in init, we want to set the amt of layers for the program
   set_layer(layer){
@@ -244,7 +192,7 @@ class Layers{
     this.states.forEach(element => {
       console.log(element.id, id)
 
-      if (element.id == id.trim()){ //why is this not updating my element?
+      if (String(element.id) === id.trim()){
         element.name = document.getElementById("node-name").value
       }
     });
@@ -271,18 +219,22 @@ class Layers{
 }
 
 function init(){
+    // the engine (and its canvas) comes first so starting nodes are placed around the view centre
+    const layerMachine = new LayerEngine()
+    const center = layerMachine.graph.viewCenter()
+    const blocked = layerMachine.graph.obstacles()
 
     const layer1_states = []
-    add_node(layer1_states)
-    add_node(layer1_states)
-    add_node(layer1_states)
-    add_node(layer1_states)
+    add_node(layer1_states, center, 'Node', blocked)
+    add_node(layer1_states, center, 'Node', blocked)
+    add_node(layer1_states, center, 'Node', blocked)
+    add_node(layer1_states, center, 'Node', blocked)
     const layer2_states = []
-    add_node(layer2_states)
-    add_node(layer2_states)
+    add_node(layer2_states, center, 'Node', blocked)
+    add_node(layer2_states, center, 'Node', blocked)
 
     const layer3_states = []
-    add_node(layer3_states)
+    add_node(layer3_states, center, 'Node', blocked)
 
     let layer1 = new Layers(
       layer1_states,
@@ -302,12 +254,12 @@ function init(){
       [],
     )
 
-    const layerMachine = new LayerEngine()
     const graphManager = new GraphManager(layerMachine);
 
     
     //this has to be set through api push
     layerMachine.layers = [layer1, layer2, layer3]
+    window.projectPlain = { layerMachine, graphManager } // handy in the dev console
     layerMachine.load_layer(layer1)
       
     // Attach class methods to event listeners

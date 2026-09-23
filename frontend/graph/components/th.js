@@ -51,11 +51,8 @@ export class TransitionGroupManager {
             console.log("added transition to group")
             grp.transitions.push(transition)
         }else{
-            const t_group = TransitionGroup(
-                state1,
-                state2,
-                [transition]
-            )
+            const t_group = new TransitionGroup(state1, state2)
+            t_group.transitions.push(transition)
 
             this.transitions_map.set(state1.id, state2.id, t_group)
             console.log("set new t_group")
@@ -70,18 +67,14 @@ export class TransitionGroupManager {
     }
 
     getTransitioArray(state1, state2,) {
-        return this.transitions_map.get(state1.id, state2.id) | []
+        return this.transitions_map.get(state1.id, state2.id)?.transitions || []
     }
 
 
-    //rewrite not sure how
-    removeTransition(nodeIdA, nodeIdB) {
-        const key = `${nodeIdA}-${nodeIdB}`;
-        if (this.transitions[key]) {
-            delete this.transitions[key];
-            console.log(`Transition removed: ${key}`);
-        } else {
-            console.log(`Transition not found: ${key}`);
+    // drop every group (and so every transition) touching a node, e.g. when it is deleted
+    removeTransitionsFor(state) {
+        for (const [key, grp] of Object.entries(this.transitions_map.map)) {
+            if (grp.parent === state || grp.child === state) { delete this.transitions_map.map[key] }
         }
     }
 

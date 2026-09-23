@@ -12,7 +12,7 @@ export class PairHashMap {
      */
     _createKey(a, b) {
         // Use an array, sort it, and join it to create a unique key
-        return [a, b].sort().join('-');
+        return JSON.stringify([String(a), String(b)].sort());
     }
 
     /**
@@ -53,8 +53,7 @@ export class PairHashMap {
      */
     list() {
         return Object.entries(this.map).map(([key, value]) => {
-            const [a, b] = key.split('-');
-            console.log(value)
+            const [a, b] = JSON.parse(key);
             return { pair: [a, b], value };
         });
     }

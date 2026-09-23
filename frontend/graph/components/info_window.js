@@ -26,10 +26,9 @@ export function updateWindow(selectedNode) {
     const nodeNameInput = document.getElementById('node-name');
 
     // Check if inputs exist and update their values
-    if (selectedNode && nodeIdInput && nodeNameInput) {
-        nodeIdInput.value = selectedNode.id;
-        nodeNameInput.value = selectedNode.name;
-    }
+    if (!nodeIdInput || !nodeNameInput) { return }
+    nodeIdInput.value = selectedNode ? selectedNode.id : '';
+    nodeNameInput.value = selectedNode ? selectedNode.name : '';
 }
 
 
