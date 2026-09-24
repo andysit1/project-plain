@@ -5,3 +5,4 @@ tasks/claims/*.lock
 test-results/
 playwright-report/
 __pycache__/
+.claude/
