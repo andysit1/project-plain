@@ -34,3 +34,24 @@ window.__plain = {
 ```
 
 Specs wait with `page.waitForFunction(() => window.__plain?.renders >= n)`.
+
+## Layers additions (L1 classes / L2 functions / L3 data)
+
+| id | What |
+| --- | --- |
+| `#layer-switch` | Segmented control, top-left over the canvas |
+| `#layer-classes`, `#layer-functions`, `#layer-data` | Its three buttons. The active one has `aria-pressed="true"`. `#layer-data` has `aria-disabled="true"` until a function or class is selected; it stays clickable and, while nothing is selected, shows a hint in `#layer-hint` instead of switching |
+| `#breadcrumb` | Status-bar text such as `Classes › Registry › Registry.add › data` |
+
+Keys: `1` / `2` / `3` switch layer; `Esc` clears the drill-down highlight or steps one layer back up.
+Double-click a class box (L1): go to L2, camera fitted to its methods, those methods and their call edges highlighted, everything else drawn at `DIM_ALPHA`.
+Double-click a function box (L2), or a class box with the Alt key: go to L3 for it.
+
+`window.__plain` gains:
+
+```js
+  layer,            // 'classes' | 'functions' | 'data'
+  setLayer(name),   // same as clicking the button; returns false if not allowed (data with no selection)
+  drill(id),        // same as double-clicking the box with this id in the current layer
+  highlighted(),    // string[]: ids currently highlighted in L2 ([] when none)
+```

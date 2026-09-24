@@ -17,8 +17,17 @@
       Your browser does not support HTML5 canvas.
     </canvas>
 
+    <div id="layer-switch" role="group" aria-label="Layer">
+      <button id="layer-classes" aria-pressed="false" title="Classes (1)">Classes</button>
+      <button id="layer-functions" aria-pressed="true" title="Functions (2)">Functions</button>
+      <button id="layer-data" aria-pressed="false" title="Data (3): select a function or class first" aria-disabled="true">Data</button>
+    </div>
+
+    <div id="layer-hint" hidden></div>
+
     <div id="status-bar">
       <span id="status-conn" data-state="connecting">connecting</span>
+      <span id="breadcrumb">Functions</span>
       <span id="status-counts"></span>
       <span id="status-rebuild"></span>
       <button id="relayout" title="Forget saved positions and arrange by call flow">Re-arrange</button>
@@ -32,11 +41,24 @@
       <div id="inspector-loc"></div>
       <button id="open-in-editor">Open in editor</button>
 
-      <h3>Callers</h3>
-      <ul id="inspector-callers"></ul>
+      <section id="inspector-fn">
+        <h3>Callers</h3>
+        <ul id="inspector-callers"></ul>
 
-      <h3>Callees</h3>
-      <ul id="inspector-callees"></ul>
+        <h3>Callees</h3>
+        <ul id="inspector-callees"></ul>
+      </section>
+
+      <section id="inspector-cls" hidden>
+        <h3>Fields</h3>
+        <ul id="inspector-fields"></ul>
+
+        <h3 id="inspector-methods-title">Methods</h3>
+        <ul id="inspector-methods"></ul>
+
+        <h3>Subclasses</h3>
+        <ul id="inspector-subclasses"></ul>
+      </section>
     </aside>
   </div>
 </body>

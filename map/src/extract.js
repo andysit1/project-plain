@@ -1,11 +1,13 @@
 // Per-file extraction: tree-sitter parses one file and we pull out its functions,
-// methods, module-level calls and imports. graph.js turns this into a CodeGraph.
+// methods, module-level calls and imports, plus (Python only) its classes with their
+// bases, decorators and fields. graph.js turns this into a CodeGraph.
 //
 // Language is chosen by extension: .py python, .ts typescript, .tsx tsx,
 // .js/.jsx/.mjs/.cjs javascript. Grammars are loaded lazily from tree-sitter-wasms
 // and cached for the lifetime of the process.
 import { createRequire } from 'node:module'
 import Parser from 'web-tree-sitter'
+import { extractPythonData } from './extract-data.js'
 
 const require = createRequire(import.meta.url)
 
@@ -71,10 +73,17 @@ function stripQuotes(text) {
 
 // ---------------------------------------------------------------- python
 
+// ctx.classes collects RawClass records ({ qname, name, line, bases, decorators, fields });
+// ctx.cls is the record of the innermost enclosing class (null outside classes) and
+// ctx.paramTypes maps the current function's annotated parameters to their annotation.
 function extractPython(root, basenameStr) {
   const out = []
+  const classes = []
   const moduleCalls = []
-  walkPy(root, { qname: [], parentKind: 'module', callsArr: moduleCalls, fnStack: [], className: null }, out)
+  walkPy(root, {
+    qname: [], parentKind: 'module', callsArr: moduleCalls, fnStack: [], className: null,
+    classes, cls: null, paramTypes: null,
+  }, out)
   if (moduleCalls.length) {
     out.unshift({
       qname: '<module>', name: basenameStr, kind: 'module', line: 1,
@@ -82,7 +91,7 @@ function extractPython(root, basenameStr) {
       className: null, scopeChain: [''],
     })
   }
-  return out
+  return { functions: out, classes }
 }
 
 function walkPy(node, ctx, out) {
@@ -94,10 +103,68 @@ function walkPy(node, ctx, out) {
       handleFunctionDefPy(child, ctx, out)
     } else if (child.type === 'class_definition') {
       handleClassDefPy(child, ctx, out)
+    } else if (child.type === 'assignment') {
+      handleAssignmentPy(child, ctx)
+      walkPy(child, ctx, out)
     } else {
       walkPy(child, ctx, out)
     }
   }
+}
+
+// A whole-string annotation ("Optional[X]") is a forward ref: drop the outer quotes.
+function annotationText(typeNode) {
+  const t = collapseWs(typeNode.text)
+  const m = /^(['"])(.*)\1$/.exec(t)
+  return m && !/['"]/.test(m[2]) ? m[2] : t
+}
+
+// Field type from an assignment's right-hand side: `Point(0, 0)` -> "Point" (capitalised
+// callee only), a bare annotated parameter -> its annotation, otherwise "".
+function rhsTypePy(right, ctx) {
+  if (!right) return ''
+  if (right.type === 'call') {
+    const fn = right.childForFieldName('function')
+    if (!fn || (fn.type !== 'identifier' && fn.type !== 'attribute')) return ''
+    const last = fn.type === 'identifier' ? fn.text : (fn.childForFieldName('attribute') || fn).text
+    return /^[A-Z]/.test(last) ? collapseWs(fn.text) : ''
+  }
+  if (right.type === 'identifier' && ctx.paramTypes && ctx.paramTypes.has(right.text)) {
+    return ctx.paramTypes.get(right.text)
+  }
+  return ''
+}
+
+// Records class fields: annotated names in a class body, and `self.x = ...` in its methods
+// (ctx.cls is reset by a nested class, so its methods feed that class instead).
+function handleAssignmentPy(node, ctx) {
+  const rec = ctx.cls
+  const left = node.childForFieldName('left')
+  if (!rec || !left) return
+  const typeNode = node.childForFieldName('type')
+  let name = null
+  if (ctx.parentKind === 'class') {
+    if (left.type === 'identifier' && typeNode) name = left.text
+  } else if (ctx.parentKind === 'fn' && left.type === 'attribute') {
+    const obj = left.childForFieldName('object')
+    const attr = left.childForFieldName('attribute')
+    if (obj && obj.type === 'identifier' && obj.text === 'self' && attr) name = attr.text
+  }
+  if (!name || rec.fields.some(f => f.name === name)) return
+  const type = typeNode ? annotationText(typeNode) : rhsTypePy(node.childForFieldName('right'), ctx)
+  rec.fields.push({ name, type, line: node.startPosition.row + 1 })
+}
+
+function paramTypesPy(paramsNode) {
+  const types = new Map()
+  if (!paramsNode) return types
+  for (const p of paramsNode.namedChildren) {
+    if (p.type !== 'typed_parameter' && p.type !== 'typed_default_parameter') continue
+    const typeNode = p.childForFieldName('type')
+    const nameNode = p.childForFieldName('name') || p.namedChildren.find(c => c.type === 'identifier')
+    if (typeNode && nameNode && nameNode.type === 'identifier') types.set(nameNode.text, annotationText(typeNode))
+  }
+  return types
 }
 
 function pushCallPy(node, callsArr) {
@@ -130,17 +197,52 @@ function handleFunctionDefPy(node, ctx, out) {
   scopeChain.push('')
   out.push({ qname, name, kind, line: node.startPosition.row + 1, params, returns, bodyText, calls, className: ctx.className, scopeChain })
   if (bodyNode) {
-    walkPy(bodyNode, { qname: qnameParts, parentKind: 'fn', callsArr: calls, fnStack, className: ctx.className }, out)
+    walkPy(bodyNode, {
+      qname: qnameParts, parentKind: 'fn', callsArr: calls, fnStack, className: ctx.className,
+      classes: ctx.classes, cls: ctx.cls, paramTypes: paramTypesPy(paramsNode),
+    }, out)
   }
+}
+
+// `@dataclass` -> "dataclass", `@dataclass(frozen=True)` -> "dataclass".
+function decoratorNamesPy(node) {
+  const parent = node.parent
+  if (!parent || parent.type !== 'decorated_definition') return []
+  const names = []
+  for (const d of parent.namedChildren) {
+    if (d.type !== 'decorator') continue
+    let expr = d.namedChildren.find(c => c.type !== 'comment')
+    if (expr && expr.type === 'call') expr = expr.childForFieldName('function')
+    if (expr) names.push(collapseWs(expr.text))
+  }
+  return names
+}
+
+// Positional superclass arguments only: `metaclass=...` and other keywords are skipped.
+function basesPy(node) {
+  const argList = node.childForFieldName('superclasses')
+  if (!argList) return []
+  return argList.namedChildren
+    .filter(c => !['keyword_argument', 'comment', 'list_splat', 'dictionary_splat'].includes(c.type))
+    .map(c => collapseWs(c.text))
 }
 
 function handleClassDefPy(node, ctx, out) {
   const nameNode = node.childForFieldName('name')
   const name = nameNode ? nameNode.text : '<anonymous>'
   const qnameParts = [...ctx.qname, name]
+  const qname = qnameParts.join('.')
+  const rec = {
+    qname, name, line: node.startPosition.row + 1,
+    bases: basesPy(node), decorators: decoratorNamesPy(node), fields: [],
+  }
+  ctx.classes.push(rec)
   const bodyNode = node.childForFieldName('body')
   if (bodyNode) {
-    walkPy(bodyNode, { qname: qnameParts, parentKind: 'class', callsArr: ctx.callsArr, fnStack: ctx.fnStack, className: qnameParts.join('.') }, out)
+    walkPy(bodyNode, {
+      qname: qnameParts, parentKind: 'class', callsArr: ctx.callsArr, fnStack: ctx.fnStack, className: qname,
+      classes: ctx.classes, cls: rec, paramTypes: null,
+    }, out)
   }
 }
 
@@ -367,7 +469,7 @@ function handleRequireDeclarator(node, imports) {
 
 export async function extractFile(relPath, source) {
   const lang = langForPath(relPath)
-  if (!lang) return { functions: [], imports: {}, errors: [] }
+  if (!lang) return { functions: [], imports: {}, errors: [], classes: [], data: null }
 
   const language = await getLanguage(lang)
   const parser = new Parser()
@@ -379,9 +481,19 @@ export async function extractFile(relPath, source) {
       errors.push(`${relPath}: syntax error`)
     }
     const name = basename(relPath)
-    const functions = lang === 'python' ? extractPython(tree.rootNode, name) : extractJsTs(tree.rootNode, name)
-    const imports = lang === 'python' ? extractPythonImports(tree.rootNode) : extractJsTsImports(tree.rootNode)
-    return { functions, imports, errors }
+    if (lang === 'python') {
+      const { functions, classes } = extractPython(tree.rootNode, name)
+      // L3 data facts; a failure here must never cost the file its functions and calls.
+      let data = null
+      try {
+        data = extractPythonData(tree.rootNode)
+      } catch (e) {
+        errors.push(`${relPath}: data extraction failed: ${e.message}`)
+      }
+      return { functions, imports: extractPythonImports(tree.rootNode), errors, classes, data }
+    }
+    const functions = extractJsTs(tree.rootNode, name)
+    return { functions, imports: extractJsTsImports(tree.rootNode), errors, classes: [], data: null }
   } finally {
     parser.delete()
   }

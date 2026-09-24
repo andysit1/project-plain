@@ -4,7 +4,7 @@
 // go out through subscriber callbacks (onSelect/onMove/onCamera) instead of touching the DOM
 // directly, so T10 (the app shell) owns the inspector wiring.
 
-import { GRID, CULL_MARGIN, LABEL_MIN_ZOOM } from '../../../shared/contracts.js'
+import { GRID, CULL_MARGIN, LABEL_MIN_ZOOM, DIM_ALPHA } from '../../../shared/contracts.js'
 
 const DRAG_THRESHOLD = 4 // px of movement before a press becomes a drag
 const CAMERA_DEBOUNCE_MS = 300
@@ -25,6 +25,7 @@ class Graph {
 
         this.scene = { groups: [], edges: [], nodes: [] }
         this.selectedId = null
+        this.highlightIds = null // Set<id> drawn at full strength; everything else at DIM_ALPHA
 
         // camera: screen = world * k + (x, y). Lets nodes live anywhere, not just on-screen.
         this.camera = { x: 0, y: 0, k: 1 }
@@ -37,6 +38,7 @@ class Graph {
         this._selectCbs = new Set()
         this._moveCbs = new Set()
         this._cameraCbs = new Set()
+        this._activateCbs = new Set()
         this._cameraTimer = null
 
         this.subscribeEvents()
@@ -56,6 +58,29 @@ class Graph {
 
         const keep = this.selectedId != null ? nodes.find(n => n.id === this.selectedId) : null
         this.applySelection(keep || null)
+        this.applyHighlight()
+        this.dirty = true
+    }
+
+    // ---------------------------------------------------------------- highlight (drill-down)
+
+    // ids (iterable) = nodes to draw at full strength, plus every edge touching one of them;
+    // the rest is drawn at DIM_ALPHA. null clears it. Survives setScene (ids are re-applied).
+    setHighlight (ids) {
+        this.highlightIds = ids ? new Set(ids) : null
+        this.applyHighlight()
+    }
+
+    highlighted () { return this.highlightIds ? [...this.highlightIds] : [] }
+
+    applyHighlight () {
+        const set = this.highlightIds
+        for (const n of this.scene.nodes) { n.dimmed = !!set && !set.has(n.id) }
+        for (const e of this.scene.edges) {
+            const d = e.data || {}
+            e.dimmed = !!set && !(set.has(d.from) || set.has(d.to))
+        }
+        for (const g of this.scene.groups) { g.dimmed = !!set }
         this.dirty = true
     }
 
@@ -90,7 +115,19 @@ class Graph {
 
     // Fits every drawable's bounds() (plus a screen-px margin) into the canvas.
     fitToContent (margin = 40) {
-        const all = [...this.scene.groups, ...this.scene.nodes, ...this.scene.edges]
+        this.fitTo([...this.scene.groups, ...this.scene.nodes, ...this.scene.edges], margin)
+    }
+
+    // Fits only the nodes with these ids; returns false (camera untouched) when none exist.
+    fitToIds (ids, { margin = 60, maxK = 1.5 } = {}) {
+        const set = new Set(ids)
+        const list = this.scene.nodes.filter(n => set.has(n.id))
+        if (!list.length) { return false }
+        this.fitTo(list, margin, maxK)
+        return true
+    }
+
+    fitTo (all, margin = 40, maxK = 3) {
         if (all.length === 0) { return }
 
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
@@ -105,7 +142,7 @@ class Graph {
         const ch = this.canvas.clientHeight
 
         let k = Math.min((cw - 2 * margin) / w, (ch - 2 * margin) / h)
-        k = Math.max(0.2, Math.min(3, k))
+        k = Math.max(0.2, Math.min(maxK, k))
 
         const cx = minX + w / 2
         const cy = minY + h / 2
@@ -118,6 +155,8 @@ class Graph {
 
     onSelect (cb) { this._selectCbs.add(cb); return () => this._selectCbs.delete(cb) }
     onMove (cb) { this._moveCbs.add(cb); return () => this._moveCbs.delete(cb) }
+    // double-click on a node: cb(node, { altKey })
+    onActivate (cb) { this._activateCbs.add(cb); return () => this._activateCbs.delete(cb) }
 
     select (id) {
         const node = this.scene.nodes.find(n => n.id === id) || null
@@ -126,7 +165,9 @@ class Graph {
 
     // Sets node.selected / edge.highlight to match `node` (or clears everything on null),
     // firing onSelect subscribers only when the selected id actually changes.
-    applySelection (node) {
+    // info.pointer = true when a mouse press made the selection (it may be the first half of a
+    // double-click), so subscribers can defer UI that would cover the spot under the cursor.
+    applySelection (node, info = {}) {
         const newId = node ? node.id : null
         for (const n of this.scene.nodes) { n.selected = (n === node) }
         for (const e of this.scene.edges) {
@@ -136,7 +177,7 @@ class Graph {
         const changed = newId !== this.selectedId
         this.selectedId = newId
         this.dirty = true
-        if (changed) { for (const cb of this._selectCbs) { cb(node || null) } }
+        if (changed) { for (const cb of this._selectCbs) { cb(node || null, info) } }
     }
 
     // topmost node under a world point (last drawn wins, matching what the user sees)
@@ -157,6 +198,15 @@ class Graph {
         this.canvas.addEventListener('pointercancel', e => this.onMouseUp(e))
         this.canvas.addEventListener('pointerdown', e => this.onMouseDown(e))
         this.canvas.addEventListener('wheel', e => this.onWheel(e), { passive: false })
+        this.canvas.addEventListener('dblclick', e => this.onDoubleClick(e))
+    }
+
+    onDoubleClick (event) {
+        event.preventDefault?.()
+        const { x, y } = this.screenToWorld(this.eventPos(event))
+        const node = this.nodeAt(x, y)
+        if (!node) { return }
+        for (const cb of this._activateCbs) { cb(node, { altKey: !!event.altKey }) }
     }
 
     // pointer position relative to the canvas, in screen pixels
@@ -178,7 +228,7 @@ class Graph {
             return
         }
 
-        this.applySelection(node)
+        this.applySelection(node, { pointer: true })
 
         // bring the grabbed node to the front so it draws over what it's dragged across
         const i = this.scene.nodes.indexOf(node)
@@ -303,7 +353,9 @@ class Graph {
     drawList (ctx, view, list, visible) {
         for (const d of list) {
             if (!rectsIntersect(d.bounds(), visible)) { continue } // culled
+            if (d.dimmed) { ctx.globalAlpha = DIM_ALPHA }
             d.draw(ctx, view)
+            if (d.dimmed) { ctx.globalAlpha = 1 }
             this.stats.drawCalls++
         }
     }

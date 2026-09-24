@@ -1,0 +1,1000 @@
+{
+  "version": 1,
+  "root": "/fixtures/layers-repo",
+  "builtAt": 1758700000000,
+  "nodes": [
+    {
+      "id": "app/structures.py::ListNode.__init__",
+      "name": "__init__",
+      "qname": "ListNode.__init__",
+      "file": "app/structures.py",
+      "line": 9,
+      "kind": "method",
+      "params": "self, value: int, next: \"Optional[ListNode]\" = None",
+      "returns": "",
+      "sig": "2b295a57",
+      "body": "f722a2a2",
+      "cls": "app/structures.py::ListNode"
+    },
+    {
+      "id": "app/structures.py::DNode.__init__",
+      "name": "__init__",
+      "qname": "DNode.__init__",
+      "file": "app/structures.py",
+      "line": 15,
+      "kind": "method",
+      "params": "self, value",
+      "returns": "",
+      "sig": "b356deb9",
+      "body": "f4694e06",
+      "cls": "app/structures.py::DNode"
+    },
+    {
+      "id": "app/structures.py::TreeNode.__init__",
+      "name": "__init__",
+      "qname": "TreeNode.__init__",
+      "file": "app/structures.py",
+      "line": 22,
+      "kind": "method",
+      "params": "self, key: int",
+      "returns": "",
+      "sig": "1cdfedc9",
+      "body": "1a790f5f",
+      "cls": "app/structures.py::TreeNode"
+    },
+    {
+      "id": "app/structures.py::GraphNode.__init__",
+      "name": "__init__",
+      "qname": "GraphNode.__init__",
+      "file": "app/structures.py",
+      "line": 29,
+      "kind": "method",
+      "params": "self, name: str",
+      "returns": "",
+      "sig": "e58d0063",
+      "body": "d81ff259",
+      "cls": "app/structures.py::GraphNode"
+    },
+    {
+      "id": "app/structures.py::Shape.area",
+      "name": "area",
+      "qname": "Shape.area",
+      "file": "app/structures.py",
+      "line": 47,
+      "kind": "method",
+      "params": "self",
+      "returns": "float",
+      "sig": "dfb5a77a",
+      "body": "5943f748",
+      "cls": "app/structures.py::Shape"
+    },
+    {
+      "id": "app/structures.py::Square.__init__",
+      "name": "__init__",
+      "qname": "Square.__init__",
+      "file": "app/structures.py",
+      "line": 52,
+      "kind": "method",
+      "params": "self, side: float",
+      "returns": "",
+      "sig": "3c17b60b",
+      "body": "c64b2a30",
+      "cls": "app/structures.py::Square"
+    },
+    {
+      "id": "app/structures.py::Square.area",
+      "name": "area",
+      "qname": "Square.area",
+      "file": "app/structures.py",
+      "line": 56,
+      "kind": "method",
+      "params": "self",
+      "returns": "float",
+      "sig": "dfb5a77a",
+      "body": "8740404b",
+      "cls": "app/structures.py::Square"
+    },
+    {
+      "id": "app/structures.py::Registry.__init__",
+      "name": "__init__",
+      "qname": "Registry.__init__",
+      "file": "app/structures.py",
+      "line": 61,
+      "kind": "method",
+      "params": "self",
+      "returns": "",
+      "sig": "5352731c",
+      "body": "652b39a1",
+      "cls": "app/structures.py::Registry"
+    },
+    {
+      "id": "app/structures.py::Registry.add",
+      "name": "add",
+      "qname": "Registry.add",
+      "file": "app/structures.py",
+      "line": 67,
+      "kind": "method",
+      "params": "self, name, shape",
+      "returns": "",
+      "sig": "10477020",
+      "body": "f40df897",
+      "cls": "app/structures.py::Registry"
+    },
+    {
+      "id": "app/structures.py::Registry.build",
+      "name": "build",
+      "qname": "Registry.build",
+      "file": "app/structures.py",
+      "line": 73,
+      "kind": "method",
+      "params": "self",
+      "returns": "",
+      "sig": "5352731c",
+      "body": "25b57e25",
+      "cls": "app/structures.py::Registry"
+    },
+    {
+      "id": "app/structures.py::linked_sum",
+      "name": "linked_sum",
+      "qname": "linked_sum",
+      "file": "app/structures.py",
+      "line": 80,
+      "kind": "fn",
+      "params": "head: ListNode",
+      "returns": "int",
+      "sig": "8808fd6c",
+      "body": "d88c7564",
+      "cls": "app/structures.py::<module>"
+    },
+    {
+      "id": "app/structures.py::make_list",
+      "name": "make_list",
+      "qname": "make_list",
+      "file": "app/structures.py",
+      "line": 89,
+      "kind": "fn",
+      "params": "values",
+      "returns": "",
+      "sig": "1b64ab85",
+      "body": "d6c8ab0e",
+      "cls": "app/structures.py::<module>"
+    },
+    {
+      "id": "app/structures.py::grid",
+      "name": "grid",
+      "qname": "grid",
+      "file": "app/structures.py",
+      "line": 96,
+      "kind": "fn",
+      "params": "n",
+      "returns": "",
+      "sig": "fcdbaa7e",
+      "body": "f3c543ad",
+      "cls": "app/structures.py::<module>"
+    },
+    {
+      "id": "app/structures.py::count_words",
+      "name": "count_words",
+      "qname": "count_words",
+      "file": "app/structures.py",
+      "line": 106,
+      "kind": "fn",
+      "params": "lines: list[str]",
+      "returns": "dict[str, int]",
+      "sig": "4ad4fed7",
+      "body": "a76b9cb7",
+      "cls": "app/structures.py::<module>"
+    },
+    {
+      "id": "app/config.py::load_config",
+      "name": "load_config",
+      "qname": "load_config",
+      "file": "app/config.py",
+      "line": 4,
+      "kind": "fn",
+      "params": "path=\".env\"",
+      "returns": "",
+      "sig": "afaf899b",
+      "body": "7904e2cd",
+      "cls": "app/config.py::<module>"
+    }
+  ],
+  "edges": [
+    {
+      "id": "app/structures.py::Registry.add>app/structures.py::Square.area",
+      "from": "app/structures.py::Registry.add",
+      "to": "app/structures.py::Square.area",
+      "kind": "call"
+    },
+    {
+      "id": "app/structures.py::Registry.build>app/structures.py::Square.__init__",
+      "from": "app/structures.py::Registry.build",
+      "to": "app/structures.py::Square.__init__",
+      "kind": "call"
+    },
+    {
+      "id": "app/structures.py::Registry.build>app/structures.py::Registry.add",
+      "from": "app/structures.py::Registry.build",
+      "to": "app/structures.py::Registry.add",
+      "kind": "call"
+    },
+    {
+      "id": "app/structures.py::Registry.build>app/config.py::load_config",
+      "from": "app/structures.py::Registry.build",
+      "to": "app/config.py::load_config",
+      "kind": "call"
+    },
+    {
+      "id": "app/structures.py::Registry.__init__>app/structures.py::TreeNode.__init__",
+      "from": "app/structures.py::Registry.__init__",
+      "to": "app/structures.py::TreeNode.__init__",
+      "kind": "call"
+    },
+    {
+      "id": "app/structures.py::make_list>app/structures.py::ListNode.__init__",
+      "from": "app/structures.py::make_list",
+      "to": "app/structures.py::ListNode.__init__",
+      "kind": "call"
+    }
+  ],
+  "errors": [],
+  "classes": [
+    {
+      "id": "app/structures.py::ListNode",
+      "name": "ListNode",
+      "qname": "ListNode",
+      "file": "app/structures.py",
+      "line": 8,
+      "kind": "class",
+      "bases": [],
+      "fields": [
+        {
+          "name": "value",
+          "type": "int",
+          "line": 10,
+          "shape": {
+            "k": "prim",
+            "t": "int"
+          },
+          "src": "annotation"
+        },
+        {
+          "name": "next",
+          "type": "Optional[ListNode]",
+          "line": 11,
+          "shape": {
+            "k": "union",
+            "of": [
+              {
+                "k": "obj",
+                "cls": "app/structures.py::ListNode"
+              },
+              {
+                "k": "prim",
+                "t": "none"
+              }
+            ]
+          },
+          "src": "annotation"
+        }
+      ],
+      "methods": [
+        "app/structures.py::ListNode.__init__"
+      ],
+      "structure": "linked-list"
+    },
+    {
+      "id": "app/structures.py::DNode",
+      "name": "DNode",
+      "qname": "DNode",
+      "file": "app/structures.py",
+      "line": 14,
+      "kind": "class",
+      "bases": [],
+      "fields": [
+        {
+          "name": "value",
+          "type": "",
+          "line": 16,
+          "shape": {
+            "k": "unknown"
+          },
+          "src": "unknown"
+        },
+        {
+          "name": "prev",
+          "type": "Optional[\"DNode\"]",
+          "line": 17,
+          "shape": {
+            "k": "union",
+            "of": [
+              {
+                "k": "obj",
+                "cls": "app/structures.py::DNode"
+              },
+              {
+                "k": "prim",
+                "t": "none"
+              }
+            ]
+          },
+          "src": "annotation"
+        },
+        {
+          "name": "next",
+          "type": "Optional[\"DNode\"]",
+          "line": 18,
+          "shape": {
+            "k": "union",
+            "of": [
+              {
+                "k": "obj",
+                "cls": "app/structures.py::DNode"
+              },
+              {
+                "k": "prim",
+                "t": "none"
+              }
+            ]
+          },
+          "src": "annotation"
+        }
+      ],
+      "methods": [
+        "app/structures.py::DNode.__init__"
+      ],
+      "structure": "doubly-linked-list"
+    },
+    {
+      "id": "app/structures.py::TreeNode",
+      "name": "TreeNode",
+      "qname": "TreeNode",
+      "file": "app/structures.py",
+      "line": 21,
+      "kind": "class",
+      "bases": [],
+      "fields": [
+        {
+          "name": "key",
+          "type": "int",
+          "line": 23,
+          "shape": {
+            "k": "prim",
+            "t": "int"
+          },
+          "src": "annotation"
+        },
+        {
+          "name": "left",
+          "type": "Optional[\"TreeNode\"]",
+          "line": 24,
+          "shape": {
+            "k": "union",
+            "of": [
+              {
+                "k": "obj",
+                "cls": "app/structures.py::TreeNode"
+              },
+              {
+                "k": "prim",
+                "t": "none"
+              }
+            ]
+          },
+          "src": "annotation"
+        },
+        {
+          "name": "right",
+          "type": "Optional[\"TreeNode\"]",
+          "line": 25,
+          "shape": {
+            "k": "union",
+            "of": [
+              {
+                "k": "obj",
+                "cls": "app/structures.py::TreeNode"
+              },
+              {
+                "k": "prim",
+                "t": "none"
+              }
+            ]
+          },
+          "src": "annotation"
+        }
+      ],
+      "methods": [
+        "app/structures.py::TreeNode.__init__"
+      ],
+      "structure": "tree"
+    },
+    {
+      "id": "app/structures.py::GraphNode",
+      "name": "GraphNode",
+      "qname": "GraphNode",
+      "file": "app/structures.py",
+      "line": 28,
+      "kind": "class",
+      "bases": [],
+      "fields": [
+        {
+          "name": "name",
+          "type": "str",
+          "line": 30,
+          "shape": {
+            "k": "prim",
+            "t": "str"
+          },
+          "src": "annotation"
+        },
+        {
+          "name": "neighbors",
+          "type": "list[\"GraphNode\"]",
+          "line": 31,
+          "shape": {
+            "k": "list",
+            "of": {
+              "k": "obj",
+              "cls": "app/structures.py::GraphNode"
+            }
+          },
+          "src": "annotation"
+        }
+      ],
+      "methods": [
+        "app/structures.py::GraphNode.__init__"
+      ],
+      "structure": "graph"
+    },
+    {
+      "id": "app/structures.py::Point",
+      "name": "Point",
+      "qname": "Point",
+      "file": "app/structures.py",
+      "line": 35,
+      "kind": "class",
+      "bases": [],
+      "fields": [
+        {
+          "name": "x",
+          "type": "float",
+          "line": 36,
+          "shape": {
+            "k": "prim",
+            "t": "float"
+          },
+          "src": "annotation"
+        },
+        {
+          "name": "y",
+          "type": "float",
+          "line": 37,
+          "shape": {
+            "k": "prim",
+            "t": "float"
+          },
+          "src": "annotation"
+        }
+      ],
+      "methods": [],
+      "structure": null
+    },
+    {
+      "id": "app/structures.py::Polygon",
+      "name": "Polygon",
+      "qname": "Polygon",
+      "file": "app/structures.py",
+      "line": 41,
+      "kind": "class",
+      "bases": [],
+      "fields": [
+        {
+          "name": "name",
+          "type": "str",
+          "line": 42,
+          "shape": {
+            "k": "prim",
+            "t": "str"
+          },
+          "src": "annotation"
+        },
+        {
+          "name": "points",
+          "type": "list[Point]",
+          "line": 43,
+          "shape": {
+            "k": "list",
+            "of": {
+              "k": "obj",
+              "cls": "app/structures.py::Point"
+            }
+          },
+          "src": "annotation"
+        }
+      ],
+      "methods": [],
+      "structure": null
+    },
+    {
+      "id": "app/structures.py::Shape",
+      "name": "Shape",
+      "qname": "Shape",
+      "file": "app/structures.py",
+      "line": 46,
+      "kind": "class",
+      "bases": [],
+      "fields": [],
+      "methods": [
+        "app/structures.py::Shape.area"
+      ],
+      "structure": null
+    },
+    {
+      "id": "app/structures.py::Square",
+      "name": "Square",
+      "qname": "Square",
+      "file": "app/structures.py",
+      "line": 51,
+      "kind": "class",
+      "bases": [
+        "Shape"
+      ],
+      "fields": [
+        {
+          "name": "side",
+          "type": "float",
+          "line": 53,
+          "shape": {
+            "k": "prim",
+            "t": "float"
+          },
+          "src": "annotation"
+        },
+        {
+          "name": "corner",
+          "type": "Point",
+          "line": 54,
+          "shape": {
+            "k": "obj",
+            "cls": "app/structures.py::Point"
+          },
+          "src": "ctor"
+        }
+      ],
+      "methods": [
+        "app/structures.py::Square.__init__",
+        "app/structures.py::Square.area"
+      ],
+      "structure": null
+    },
+    {
+      "id": "app/structures.py::Registry",
+      "name": "Registry",
+      "qname": "Registry",
+      "file": "app/structures.py",
+      "line": 60,
+      "kind": "class",
+      "bases": [],
+      "fields": [
+        {
+          "name": "items",
+          "type": "",
+          "line": 62,
+          "shape": {
+            "k": "list",
+            "of": {
+              "k": "obj",
+              "cls": "app/structures.py::Square"
+            }
+          },
+          "src": "mutation"
+        },
+        {
+          "name": "by_name",
+          "type": "",
+          "line": 63,
+          "shape": {
+            "k": "dict",
+            "key": {
+              "k": "prim",
+              "t": "str"
+            },
+            "val": {
+              "k": "obj",
+              "cls": "app/structures.py::Square"
+            }
+          },
+          "src": "mutation"
+        },
+        {
+          "name": "tags",
+          "type": "",
+          "line": 64,
+          "shape": {
+            "k": "set",
+            "of": {
+              "k": "prim",
+              "t": "str"
+            }
+          },
+          "src": "mutation"
+        },
+        {
+          "name": "root",
+          "type": "TreeNode",
+          "line": 65,
+          "shape": {
+            "k": "obj",
+            "cls": "app/structures.py::TreeNode"
+          },
+          "src": "ctor"
+        }
+      ],
+      "methods": [
+        "app/structures.py::Registry.__init__",
+        "app/structures.py::Registry.add",
+        "app/structures.py::Registry.build"
+      ],
+      "structure": null
+    },
+    {
+      "id": "app/structures.py::<module>",
+      "name": "structures.py",
+      "qname": "<module>",
+      "file": "app/structures.py",
+      "line": 1,
+      "kind": "module",
+      "bases": [],
+      "fields": [],
+      "methods": [
+        "app/structures.py::linked_sum",
+        "app/structures.py::make_list",
+        "app/structures.py::grid",
+        "app/structures.py::count_words"
+      ]
+    },
+    {
+      "id": "app/config.py::<module>",
+      "name": "config.py",
+      "qname": "<module>",
+      "file": "app/config.py",
+      "line": 1,
+      "kind": "module",
+      "bases": [],
+      "fields": [],
+      "methods": [
+        "app/config.py::load_config"
+      ]
+    }
+  ],
+  "classEdges": [
+    {
+      "id": "app/structures.py::Square>app/structures.py::Shape:inherits",
+      "from": "app/structures.py::Square",
+      "to": "app/structures.py::Shape",
+      "kind": "inherits",
+      "weight": 1
+    },
+    {
+      "id": "app/structures.py::Square>app/structures.py::Point:composes",
+      "from": "app/structures.py::Square",
+      "to": "app/structures.py::Point",
+      "kind": "composes",
+      "weight": 1
+    },
+    {
+      "id": "app/structures.py::Polygon>app/structures.py::Point:composes",
+      "from": "app/structures.py::Polygon",
+      "to": "app/structures.py::Point",
+      "kind": "composes",
+      "weight": 1
+    },
+    {
+      "id": "app/structures.py::Registry>app/structures.py::TreeNode:composes",
+      "from": "app/structures.py::Registry",
+      "to": "app/structures.py::TreeNode",
+      "kind": "composes",
+      "weight": 1
+    },
+    {
+      "id": "app/structures.py::Registry>app/structures.py::Square:composes",
+      "from": "app/structures.py::Registry",
+      "to": "app/structures.py::Square",
+      "kind": "composes",
+      "weight": 2
+    },
+    {
+      "id": "app/structures.py::ListNode>app/structures.py::ListNode:composes",
+      "from": "app/structures.py::ListNode",
+      "to": "app/structures.py::ListNode",
+      "kind": "composes",
+      "weight": 1
+    },
+    {
+      "id": "app/structures.py::DNode>app/structures.py::DNode:composes",
+      "from": "app/structures.py::DNode",
+      "to": "app/structures.py::DNode",
+      "kind": "composes",
+      "weight": 2
+    },
+    {
+      "id": "app/structures.py::TreeNode>app/structures.py::TreeNode:composes",
+      "from": "app/structures.py::TreeNode",
+      "to": "app/structures.py::TreeNode",
+      "kind": "composes",
+      "weight": 2
+    },
+    {
+      "id": "app/structures.py::GraphNode>app/structures.py::GraphNode:composes",
+      "from": "app/structures.py::GraphNode",
+      "to": "app/structures.py::GraphNode",
+      "kind": "composes",
+      "weight": 1
+    },
+    {
+      "id": "app/structures.py::Registry>app/structures.py::Square:instantiates",
+      "from": "app/structures.py::Registry",
+      "to": "app/structures.py::Square",
+      "kind": "instantiates",
+      "weight": 1
+    },
+    {
+      "id": "app/structures.py::Registry>app/structures.py::TreeNode:instantiates",
+      "from": "app/structures.py::Registry",
+      "to": "app/structures.py::TreeNode",
+      "kind": "instantiates",
+      "weight": 1
+    },
+    {
+      "id": "app/structures.py::Square>app/structures.py::Point:instantiates",
+      "from": "app/structures.py::Square",
+      "to": "app/structures.py::Point",
+      "kind": "instantiates",
+      "weight": 1
+    },
+    {
+      "id": "app/structures.py::<module>>app/structures.py::ListNode:instantiates",
+      "from": "app/structures.py::<module>",
+      "to": "app/structures.py::ListNode",
+      "kind": "instantiates",
+      "weight": 1
+    },
+    {
+      "id": "app/structures.py::Registry>app/config.py::<module>:uses",
+      "from": "app/structures.py::Registry",
+      "to": "app/config.py::<module>",
+      "kind": "uses",
+      "weight": 1
+    }
+  ],
+  "frames": {
+    "app/structures.py::linked_sum": {
+      "vars": [
+        {
+          "name": "head",
+          "scope": "param",
+          "line": 80,
+          "shape": {
+            "k": "obj",
+            "cls": "app/structures.py::ListNode"
+          },
+          "src": "annotation"
+        },
+        {
+          "name": "total",
+          "scope": "local",
+          "line": 81,
+          "shape": {
+            "k": "prim",
+            "t": "int"
+          },
+          "src": "literal"
+        },
+        {
+          "name": "node",
+          "scope": "local",
+          "line": 82,
+          "shape": {
+            "k": "union",
+            "of": [
+              {
+                "k": "obj",
+                "cls": "app/structures.py::ListNode"
+              },
+              {
+                "k": "prim",
+                "t": "none"
+              }
+            ]
+          },
+          "src": "mutation"
+        }
+      ],
+      "loops": [
+        {
+          "kind": "while",
+          "line": 83,
+          "var": "node",
+          "over": "node",
+          "step": "next"
+        }
+      ]
+    },
+    "app/structures.py::grid": {
+      "vars": [
+        {
+          "name": "n",
+          "scope": "param",
+          "line": 96,
+          "shape": {
+            "k": "unknown"
+          },
+          "src": "unknown"
+        },
+        {
+          "name": "rows",
+          "scope": "local",
+          "line": 97,
+          "shape": {
+            "k": "list",
+            "of": {
+              "k": "list",
+              "of": {
+                "k": "prim",
+                "t": "int"
+              }
+            }
+          },
+          "src": "mutation"
+        },
+        {
+          "name": "row",
+          "scope": "local",
+          "line": 99,
+          "shape": {
+            "k": "list",
+            "of": {
+              "k": "prim",
+              "t": "int"
+            }
+          },
+          "src": "mutation"
+        }
+      ],
+      "loops": [
+        {
+          "kind": "for",
+          "line": 98,
+          "var": "i",
+          "over": "range(n)",
+          "step": ""
+        },
+        {
+          "kind": "for",
+          "line": 100,
+          "var": "j",
+          "over": "range(n)",
+          "step": ""
+        }
+      ]
+    },
+    "app/structures.py::count_words": {
+      "vars": [
+        {
+          "name": "lines",
+          "scope": "param",
+          "line": 106,
+          "shape": {
+            "k": "list",
+            "of": {
+              "k": "prim",
+              "t": "str"
+            }
+          },
+          "src": "annotation"
+        },
+        {
+          "name": "counts",
+          "scope": "local",
+          "line": 107,
+          "shape": {
+            "k": "dict",
+            "key": {
+              "k": "prim",
+              "t": "str"
+            },
+            "val": {
+              "k": "prim",
+              "t": "int"
+            }
+          },
+          "src": "mutation"
+        }
+      ],
+      "loops": [
+        {
+          "kind": "for",
+          "line": 108,
+          "var": "line",
+          "over": "lines",
+          "step": ""
+        },
+        {
+          "kind": "for",
+          "line": 109,
+          "var": "word",
+          "over": "line.split()",
+          "step": ""
+        }
+      ]
+    },
+    "app/structures.py::Registry.add": {
+      "vars": [
+        {
+          "name": "name",
+          "scope": "param",
+          "line": 67,
+          "shape": {
+            "k": "prim",
+            "t": "str"
+          },
+          "src": "return"
+        },
+        {
+          "name": "shape",
+          "scope": "param",
+          "line": 67,
+          "shape": {
+            "k": "obj",
+            "cls": "app/structures.py::Square"
+          },
+          "src": "return"
+        },
+        {
+          "name": "items",
+          "scope": "self",
+          "line": 68,
+          "shape": {
+            "k": "list",
+            "of": {
+              "k": "obj",
+              "cls": "app/structures.py::Square"
+            }
+          },
+          "src": "mutation"
+        },
+        {
+          "name": "by_name",
+          "scope": "self",
+          "line": 69,
+          "shape": {
+            "k": "dict",
+            "key": {
+              "k": "prim",
+              "t": "str"
+            },
+            "val": {
+              "k": "obj",
+              "cls": "app/structures.py::Square"
+            }
+          },
+          "src": "mutation"
+        },
+        {
+          "name": "tags",
+          "scope": "self",
+          "line": 70,
+          "shape": {
+            "k": "set",
+            "of": {
+              "k": "prim",
+              "t": "str"
+            }
+          },
+          "src": "mutation"
+        }
+      ],
+      "loops": []
+    }
+  }
+}

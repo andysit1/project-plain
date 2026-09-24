@@ -22,11 +22,25 @@
 // In every case: a call that resolves to its own enclosing function (recursion) is
 // dropped, and a call that cannot be resolved unambiguously is dropped. Edges are
 // deduplicated by id.
+//
+// L1 classes (Python only): every node gets `cls`, the id of its innermost enclosing class
+// or its file's module pseudo-class. Class references (base text, field type text, call
+// names) resolve with rules 2-4 over the class table instead of the function table, after
+// stripping generics ("Generic[T]" -> "Generic"). classEdges:
+//   inherits: base -> class. composes: every class named in a field's type text (self
+//   edges allowed, they mark recursive structures). instantiates: a call whose name
+//   resolves to a class. uses: call edges aggregated by (from.cls, to.cls).
+// weight = number of underlying facts.
+//
+// L3 data (Python only): infer.js turns the per-file data facts into frames (per function),
+// field shapes and recursive-structure tags; untyped fields whose inferred shape holds a
+// class instance add composes edges.
 import { createHash } from 'node:crypto'
 import { readFile, readdir, stat } from 'node:fs/promises'
 import path from 'node:path'
 import { extractFile } from './extract.js'
-import { nodeId, edgeId, dirOf } from '../../shared/contracts.js'
+import { inferLayers } from './infer.js'
+import { nodeId, edgeId, dirOf, classEdgeId, moduleClassId } from '../../shared/contracts.js'
 
 const EXTS = new Set(['.py', '.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs'])
 const IGNORE_DIRS = new Set(['.git', 'node_modules', 'dist', 'build', '__pycache__', '.venv', 'venv'])
@@ -183,11 +197,16 @@ function resolveCall(fromId, info, call, file, imports, fileNodeIds, globalByNam
     const map = fileNodeIds.get(file)
     return (map && map.get(`${info.className}.${name}`)) || null
   }
+  return resolveRef(name, receiver, info.scopeChain, file, imports, fileNodeIds, globalByName, filesSet)
+}
 
+/** Rules 2-4 above, over any id table: fileNodeIds = file -> Map(qname -> id), globalByName =
+ * simple name -> [id...]. Used for calls (function ids) and for class references (class ids). */
+function resolveRef(name, receiver, scopeChain, file, imports, fileNodeIds, globalByName, filesSet) {
   if (receiver == null) {
     const map = fileNodeIds.get(file)
     if (map) {
-      for (const prefix of info.scopeChain) {
+      for (const prefix of scopeChain) {
         const q = prefix ? `${prefix}.${name}` : name
         if (map.has(q)) return map.get(q)
       }
@@ -219,6 +238,162 @@ function resolveCall(fromId, info, call, file, imports, fileNodeIds, globalByNam
   const candidates = globalByName.get(name)
   if (candidates && candidates.length === 1) return candidates[0]
   return null
+}
+
+// ---------------------------------------------------------------- class resolution
+
+const isPython = file => file.endsWith('.py')
+
+/** "A.B.C" -> ["A.B.C", "A.B", "A", ""]: the scopes a name inside A.B.C is looked up in. */
+function qnamePrefixes(qname) {
+  const parts = qname ? qname.split('.') : []
+  const out = []
+  for (let i = parts.length; i > 0; i--) out.push(parts.slice(0, i).join('.'))
+  out.push('')
+  return out
+}
+
+/** Resolves one class reference ("Base", "mod.Base", "Generic[T]", "Outer.Inner") to a
+ * class id, or null. ct = { fileClassIds, globalClassByName, filesSet }. */
+function resolveClassRef(text, scopeChain, file, imports, ct) {
+  const ref = text.replace(/^['"]|['"]$/g, '').split('[')[0].trim()
+  if (!/^[A-Za-z_][\w.]*$/.test(ref)) return null
+  const map = ct.fileClassIds.get(file)
+  if (map && ref.includes('.')) {
+    for (const prefix of scopeChain) {
+      const q = prefix ? `${prefix}.${ref}` : ref
+      if (map.has(q)) return map.get(q)
+    }
+  }
+  const i = ref.lastIndexOf('.')
+  const name = i < 0 ? ref : ref.slice(i + 1)
+  const receiver = i < 0 ? null : ref.slice(0, i)
+  return resolveRef(name, receiver, scopeChain, file, imports, ct.fileClassIds, ct.globalClassByName, ct.filesSet)
+}
+
+/** Every class a type annotation names: "Optional[X]", "dict[str, X]", "X | None", '"X"'. */
+function classesInType(typeText, scopeChain, file, imports, ct) {
+  const out = new Set()
+  for (const token of typeText.match(/[A-Za-z_][\w.]*/g) || []) {
+    const id = resolveClassRef(token, scopeChain, file, imports, ct)
+    if (id) out.add(id)
+  }
+  return out
+}
+
+/** CodeClass[] (real classes, then the file's module pseudo-class) and ClassEdge[] for the
+ * Python files. Nodes must already carry `cls`; edges are the resolved call edges. */
+function buildClasses(fileResults, nodes, nodeInfo, edges, filesSet) {
+  const classes = []
+  const byId = new Map()
+  const fileClassIds = new Map() // file -> Map(qname -> class id), real classes only
+  const globalClassByName = new Map() // simple name -> [class id...]
+  const raw = [] // [CodeClass, RawClass]
+  const usedCls = new Set(nodes.map(n => n.cls))
+
+  for (const rel of [...fileResults.keys()].sort()) {
+    if (!isPython(rel)) continue
+    const fileMap = new Map()
+    fileClassIds.set(rel, fileMap)
+    for (const rc of fileResults.get(rel).classes || []) {
+      const id = nodeId(rel, rc.qname)
+      if (byId.has(id)) continue // redefinition: first wins
+      const cls = {
+        id, name: rc.name, qname: rc.qname, file: rel, line: rc.line, kind: 'class',
+        bases: [...rc.bases], fields: rc.fields.map(f => ({ name: f.name, type: f.type, line: f.line })),
+        methods: [], structure: null,
+      }
+      classes.push(cls)
+      byId.set(id, cls)
+      raw.push([cls, rc])
+      fileMap.set(rc.qname, id)
+      if (!globalClassByName.has(rc.name)) globalClassByName.set(rc.name, [])
+      globalClassByName.get(rc.name).push(id)
+    }
+    const modId = moduleClassId(rel)
+    if (usedCls.has(modId)) {
+      const mod = {
+        id: modId, name: path.posix.basename(rel), qname: '<module>', file: rel, line: 1, kind: 'module',
+        bases: [], fields: [], methods: [], structure: null,
+      }
+      classes.push(mod)
+      byId.set(modId, mod)
+    }
+  }
+  for (const n of nodes) {
+    if (n.cls && byId.has(n.cls)) byId.get(n.cls).methods.push(n.id)
+  }
+
+  const ct = { fileClassIds, globalClassByName, filesSet }
+  const importsOf = file => (fileResults.get(file) || {}).imports || {}
+  const edgeMap = new Map()
+  const add = (from, to, kind) => {
+    if (!from || !to || (from === to && kind !== 'composes')) return
+    const id = classEdgeId(from, to, kind)
+    const e = edgeMap.get(id)
+    if (e) e.weight++
+    else edgeMap.set(id, { id, from, to, kind, weight: 1 })
+  }
+
+  for (const [cls, rc] of raw) {
+    const scope = qnamePrefixes(cls.qname).slice(1) // a base is looked up outside the class
+    for (const base of rc.bases) add(cls.id, resolveClassRef(base, scope, cls.file, importsOf(cls.file), ct), 'inherits')
+  }
+  for (const [cls, rc] of raw) {
+    const scope = qnamePrefixes(cls.qname)
+    for (const f of rc.fields) {
+      if (!f.type) continue
+      for (const to of classesInType(f.type, scope, cls.file, importsOf(cls.file), ct)) add(cls.id, to, 'composes')
+    }
+  }
+  for (const n of nodes) {
+    if (!n.cls) continue
+    const info = nodeInfo.get(n.id)
+    for (const { name, receiver } of info.calls) {
+      if (receiver === 'self' || receiver === 'this') continue
+      if (receiver != null && !/^[A-Z]/.test(name)) continue // `mod.Name(...)` only
+      const ref = receiver == null ? name : `${receiver}.${name}`
+      add(n.cls, resolveClassRef(ref, info.scopeChain, n.file, importsOf(n.file), ct), 'instantiates')
+    }
+  }
+  const clsOf = new Map(nodes.map(n => [n.id, n.cls]))
+  for (const e of edges) add(clsOf.get(e.from), clsOf.get(e.to), 'uses')
+
+  // for the infer pass: resolves a class name as written in `file` ("Point", "models.Point")
+  const resolveClass = (file, text) => resolveClassRef(text, [''], file, importsOf(file), ct)
+  return { classes, classEdges: () => [...edgeMap.values()], resolveClass, addClassEdge: add }
+}
+
+/** Class ids an inferred Shape points at, through containers and unions. */
+function classesInShape(shape, out = new Set()) {
+  if (!shape) return out
+  if (shape.k === 'obj') out.add(shape.cls)
+  for (const s of [shape.of, shape.key, shape.val].flat()) if (s) classesInShape(s, out)
+  if (shape.fields) for (const s of Object.values(shape.fields)) classesInShape(s, out)
+  return out
+}
+
+/** Runs L3 inference and folds it into the graph: frames, field shapes, structures, plus a
+ * composes edge for every untyped field whose inferred shape holds a class instance
+ * (`self.items = []` + `self.items.append(Square(...))`). Returns the frames. */
+function applyInference(fileResults, nodes, edges, classes, resolveClass, addClassEdge) {
+  const dataByFile = {}
+  for (const [rel, r] of fileResults) if (r.data) dataByFile[rel] = r.data
+  const { frames, fieldShapes, structures } = inferLayers({ nodes, edges, classes, dataByFile, resolveClass })
+  const known = new Set(classes.map(c => c.id))
+  for (const cls of classes) {
+    const shapes = fieldShapes[cls.id] || {}
+    for (const f of cls.fields) {
+      const fs = shapes[f.name]
+      if (!fs) continue
+      f.shape = fs.shape
+      f.src = fs.src
+      if (f.type) continue // typed fields already produced their composes edges
+      for (const to of classesInShape(fs.shape)) if (known.has(to)) addClassEdge(cls.id, to, 'composes')
+    }
+    cls.structure = structures[cls.id] || null
+  }
+  return frames
 }
 
 // ---------------------------------------------------------------- buildGraph
@@ -271,9 +446,10 @@ export async function buildGraph(root, opts = {}) {
       const id = nodeId(rel, fn.qname)
       const sig = hash8(`${fn.params}->${fn.returns}`)
       const body = hash8(fn.bodyText.replace(/\s+/g, ' ').trim())
+      const cls = !isPython(rel) ? null : fn.className ? nodeId(rel, fn.className) : moduleClassId(rel)
       nodes.push({
         id, name: fn.name, qname: fn.qname, file: rel, line: fn.line, kind: fn.kind,
-        params: fn.params, returns: fn.returns, sig, body,
+        params: fn.params, returns: fn.returns, sig, body, cls,
       })
       nodeInfo.set(id, {
         file: rel, qname: fn.qname, className: fn.className || null,
@@ -297,12 +473,26 @@ export async function buildGraph(root, opts = {}) {
     }
   }
 
+  const edges = [...edgeMap.values()]
+  const { classes, classEdges: listClassEdges, resolveClass, addClassEdge } =
+    buildClasses(fileResults, nodes, nodeInfo, edges, filesSet)
+  let frames = {}
+  try {
+    frames = applyInference(fileResults, nodes, edges, classes, resolveClass, addClassEdge)
+  } catch (e) {
+    errors.push(`data inference failed: ${e.message}`)
+  }
+  const classEdges = listClassEdges() // after inference, which can add composes edges
+
   return {
     version: 1,
     root: absRoot.split(path.sep).join('/'),
     builtAt: Date.now(),
     nodes,
-    edges: [...edgeMap.values()],
+    edges,
     errors,
+    classes,
+    classEdges,
+    frames,
   }
 }

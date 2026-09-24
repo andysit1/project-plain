@@ -170,14 +170,42 @@ canvas#canvas {
 }
 
 #inspector-callers,
-#inspector-callees {
+#inspector-callees,
+#inspector-fields,
+#inspector-methods,
+#inspector-subclasses {
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
+#inspector-fn[hidden],
+#inspector-cls[hidden],
+#open-in-editor[hidden] {
+  display: none;
+}
+
+#inspector li.static,
+#inspector li.empty {
+  cursor: default;
+}
+
+#inspector li.empty {
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+#inspector li.static:hover,
+#inspector li.empty:hover {
+  background: transparent;
+  color: inherit;
+}
+
 #inspector-callers li,
-#inspector-callees li {
+#inspector-callees li,
+#inspector-fields li,
+#inspector-methods li,
+#inspector-subclasses li {
   font-family: var(--mono);
   font-size: 12px;
   padding: 4px 6px;
@@ -187,7 +215,9 @@ canvas#canvas {
 }
 
 #inspector-callers li:hover,
-#inspector-callees li:hover {
+#inspector-callees li:hover,
+#inspector-methods li:hover,
+#inspector-subclasses li:hover {
   background: #26303f;
   color: var(--accent);
 }
@@ -204,3 +234,71 @@ canvas#canvas {
 }
 
 #relayout:hover { color: inherit; border-color: currentColor; }
+
+/* ---------------------------------------------------------------- layers */
+
+#layer-switch {
+  position: absolute;
+  top: 46px;
+  left: 14px;
+  display: flex;
+  z-index: 10;
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  overflow: hidden;
+  background: rgba(26, 30, 38, 0.92);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+  user-select: none;
+}
+
+#layer-switch button {
+  padding: 6px 14px;
+  font: 12px var(--sans);
+  color: var(--text-dim);
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--panel-border);
+  cursor: pointer;
+}
+
+#layer-switch button:last-child { border-right: none; }
+#layer-switch button:hover:not([aria-disabled="true"]) { color: var(--text); background: #222936; }
+
+#layer-switch button[aria-pressed="true"] {
+  color: var(--bg);
+  background: var(--accent);
+  font-weight: 600;
+}
+
+#layer-switch button[aria-disabled="true"] {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+#breadcrumb {
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 40vw;
+}
+
+#layer-hint {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  max-width: min(420px, 80vw);
+  padding: 14px 18px;
+  z-index: 5;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-dim);
+  background: rgba(26, 30, 38, 0.92);
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  pointer-events: none;
+}
+
+#layer-hint[hidden] { display: none; }
