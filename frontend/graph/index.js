@@ -1,321 +1,179 @@
-import Graph from "./components/graph.js"
-import { Transition, TransitionGroup } from "./components/transition.js"
-import { Rect, State, nextNodeId } from "./components/node.js"
-import { findFreeSpot } from "./utils/placement.js"
-import { GraphManager } from "./components/graph_handler.js"
+// App shell: wires live data -> merge -> ceiling -> scene -> Graph, and the inspector/status bar.
+// This is the ONE module allowed to import anything (see shared/dom.md, tasks/CHANGELOG.md).
 
-// update this to fit my requirements 
-// test wait fake data..
+import { emptyLayout, isEmptyPatch, applyLayoutPatch } from '../../shared/contracts.js'
+import { renderInspector, renderStatus } from './components/info_window.js'
 
-const NODE_WIDTH = 150
-const NODE_HEIGHT = 75
+/**
+ * Wires the whole pipeline against injected dependencies, so it can run headless in tests.
+ *
+ * deps: { live, merge, applyCeiling, Graph, CodeNode, FolderGroup, buildEdges, fetch? }
+ *   live:         { connect({onGraph,onStatus,onConnection,onHello}) -> {close},
+ *                   loadLayout() -> Promise<Layout>, saveLayout(patch), flushLayout() }
+ *   merge:        (graph, layout, prevGraph, {viewCenter, now}) -> Scene
+ *   applyCeiling: (scene) -> Scene
+ *   Graph:        class Graph(canvas) — see shared docs / components/graph.js (T9)
+ *   CodeNode:     class CodeNode(sceneNode)
+ *   FolderGroup:  class FolderGroup(sceneGroup)
+ *   buildEdges:   (codeEdges, boxOf) -> CallEdge[]
+ *
+ * opts: { canvas, doc = document, win = window }
+ *
+ * Returns { ready, graph, plain, close } — `ready` resolves once the layout has loaded and the
+ * live connection has been opened (it does NOT wait for the first graph to render).
+ */
+export function createApp(deps, { canvas, doc = document, win = window }) {
+  const { live, merge, applyCeiling, Graph, CodeNode, FolderGroup, buildEdges } = deps
 
-//let's create a class which holds the target state and represent the 
-//connection to toolbar html.. #GOOGLE THIS
+  const graph = new Graph(canvas)
 
-// place a node in the nearest free slot to `center` (never stacked on another node)
-function add_node(states, center, name = "Node", obstacles = []){
-    const spot = findFreeSpot(states.concat(obstacles), NODE_WIDTH, NODE_HEIGHT, center)
-    const rect = new Rect(spot.x, spot.y, NODE_WIDTH, NODE_HEIGHT)
-    states.push(new State(nextNodeId(), name, rect))
-}
+  let layout = emptyLayout()
+  let prevGraph = null
+  let currentScene = null
+  let connectionState = 'connecting'
+  let lastRebuild = null
+  let cameraApplied = false
+  let closeLive = null
 
-// Class managing transitions between different game states.
-class Machine {
-  constructor() {
-    this.current = null;
-    this.nextLayer = null;
+  const plain = {
+    scene: null,
+    graph: null,
+    renders: 0,
+    positions() {
+      const out = {}
+      for (const n of (plain.scene?.nodes || [])) out[n.id] = { x: n.x, y: n.y }
+      return out
+    },
+    select(id) { graph.select(id) },
+    connection: 'connecting',
+  }
+  win.__plain = plain
+
+  // What the inspector needs to resolve callers/callees and to select on click.
+  const inspectorGraph = {
+    get nodes() { return currentScene?.nodes || [] },
+    get edges() { return currentScene?.edges || [] },
+    select(id) { graph.select(id) },
   }
 
-  /**
-   * Updates the current state and transitions to the next state if needed.
-   */
-  update() {
-    if (this.nextLayer) {
-      this.current = this.nextLayer;
-      this.nextLayer = null;
+  function paintStatus() {
+    renderStatus(doc, { connection: connectionState, scene: currentScene, rebuild: lastRebuild })
+  }
+
+  graph.onSelect((node) => {
+    renderInspector(doc, node, inspectorGraph)
+  })
+
+  graph.onMove((node, { x, y }) => {
+    if (currentScene?.mode === 'files') return
+    live.saveLayout({ nodes: { [node.id]: { x, y } } })
+    layout = applyLayoutPatch(layout, { nodes: { [node.id]: { x, y } } })
+  })
+
+  graph.onCamera((camera) => {
+    live.saveLayout({ camera })
+    layout = applyLayoutPatch(layout, { camera })
+  })
+
+  function onConnection(state) {
+    connectionState = state
+    plain.connection = state
+    paintStatus()
+  }
+
+  function onStatus(status) {
+    lastRebuild = status
+    paintStatus()
+  }
+
+  function onHello(_hello) {
+    // Nothing to show yet; kept as a seam for future use (e.g. displaying the watched root).
+  }
+
+  function onGraph(codeGraph) {
+    const viewCenter = graph.viewCenter()
+    const scene = applyCeiling(merge(codeGraph, layout, prevGraph, { viewCenter, now: Date.now() }))
+    currentScene = scene
+    prevGraph = codeGraph
+    plain.graph = codeGraph
+    plain.scene = scene
+
+    const groups = scene.groups.map(g => new FolderGroup(g))
+    const nodesById = new Map(scene.nodes.map(n => [n.id, n]))
+    const nodes = scene.nodes.map(n => new CodeNode(n))
+    const boxOf = (id) => {
+      const n = nodesById.get(id)
+      return n ? { x: n.x, y: n.y, w: n.w, h: n.h } : undefined
     }
-  }
-}
+    const edges = buildEdges(scene.edges, boxOf)
 
-//----------
-// Handles the graph states -> how we function
-const GraphState = {
-  IDLE: 'IDLE',
-  SELECTING_NODE: 'SELECTING_NODE',
-  MAKING_TRANSITION: 'MAKING_TRANSITION',
-  EDITING_NODE: 'EDITING_NODE',
-  // Add more states as needed
-};
+    graph.setScene({ groups, edges, nodes })
 
-// pass this object through objects and it will handle the logic behind scenes
-class GraphController {
-  constructor() {
-      this.state = GraphState.IDLE;
-      this.components = []; // Keep track of components to update
-  }
-
-  addComponent(component) {
-      this.components.push(component);
-  }
-
-  setState(newState) {
-      this.state = newState;
-      console.log(`State changed to: ${this.state}`);
-      this.updateComponents(); // Notify components of the state change
-  }
-
-  updateComponents() {
-      this.components.forEach(component => {
-          component.update(this.state);
-      });
-  }
-}
-//----------
-
-
-// Handle the Layering which passes a reference GraphState into the node, toolbar
-// in truth this class handles the logic of how we update states, transition, and nested
-// everything is done in one canvas
-class LayerEngine {
-  constructor () {
-    this.machine = new Machine()
-    this.next_layer = this.next_layer.bind(this)
-    this.updateLayer = this.updateLayer.bind(this)
-    //loads the canvas
-    const canvas = document.getElementById('graph')
-    this.graph = new Graph(canvas)
-
-
-    this.layer_incrementer = 0
-    this.layers = []
-    
-  }
-
-
-
-  get_layer_index(){
-    return this.layer_incrementer % this.layers.length
-  }
-
-  get_current_layer(){
-    return this.layers[this.get_layer_index()]
-  }
-  
-
-  // rename the node that is actually selected, then repaint so the change shows immediately
-  updateLayer(){
-    const name = document.getElementById("node-name").value
-    const selected = this.graph.select_active
-    if (selected) {
-      selected.updateName(name)
-    } else {
-      this.get_current_layer().updateName()
+    if (!isEmptyPatch(scene.layoutPatch)) {
+      live.saveLayout(scene.layoutPatch)
+      layout = applyLayoutPatch(layout, scene.layoutPatch)
     }
-    this.graph.repaint = true
-  }
 
-
-  //changes the layer index
-  next_layer(){
-    //clear selections for new layer
-    this.graph.reset_selectors()
-  
-    this.layer_incrementer += 1
-    const layer = this.layers[this.get_layer_index()]
-    if (layer != undefined){
-      //will return the 
-      this.load_layer(layer)
+    if (!cameraApplied) {
+      if (layout.camera) graph.setCamera(layout.camera)
+      else graph.fitToContent()
+      cameraApplied = true
     }
-  }
-  encodeTransition(transition) {
-    // Encode a transition into a string
-    // const { id, name, state1, state2 } = transition;
-    // #1,Name
-    return `Transition: ${transition.id}|${transition.name}|${transition.parent.id},${transition.child.id}`;
+
+    plain.renders += 1
+    paintStatus()
   }
 
-  encodeState(state) {
-    // Encode a state into a string
-    const { id, name, rect } = state;
-    const rectStr = `${rect.x},${rect.y},${rect.w},${rect.h}`;
-    return `State: ${id}|${name}|${rectStr}`;
+  async function start() {
+    renderInspector(doc, null, inspectorGraph)
+    paintStatus()
+    doc.getElementById('inspector-close')?.addEventListener('click', () => {
+      renderInspector(doc, null, inspectorGraph)
+      graph.select?.(null)
+    })
+    layout = await live.loadLayout()
+    const { close } = live.connect({ onGraph, onStatus, onConnection, onHello })
+    closeLive = close
   }
 
+  const ready = start()
 
-  load_layer(data) {
-    // console.log(data.states)
-    // console.log(data.transition)
-    // console.log(data.nested_group)
-
-    //change layer variables
-    this.graph.states = data.states
-    this.graph.transitions = data.transition
-    this.graph.nestedGroups = data.nested_group
-
-    //update new layer level
-    this.graph.current_layer = this.get_layer_index() + 1
-    this.graph.repaint = true
-  } 
-
-  // in init, we want to set the amt of layers for the program
-  set_layer(layer){
-    this.layers.push(layer)
-  }
-
-  display(){
-    const stateStrings = this.graph.states.map(state => this.encodeState(state));
-    const transitionStrings = this.graph.transitions.map(t => this.encodeTransition(t));
-    
-    console.log("State", stateStrings)
-    console.log("Transisitions", transitionStrings)
-  }
-}
-import { TransitionGroupManager } from "./components/th.js"
-
-
-//layers class will hold states, transitions, and groups
-class Layers{
-  constructor(states, transition, nest){
-    //transition group binding (each layer needs one)
-    this.ts_manager = new TransitionGroupManager()
-
-    // variables
-    this.states = states
-    this.transition = transition
-    this.nested_group = nest
-  }
-
-  getStateRef(id){
-    console.log("Update", id)
-    
-    this.states.forEach(element => {
-      console.log(element.id, id)
-
-      if (String(element.id) === id.trim()){
-        element.name = document.getElementById("node-name").value
-      }
-    });
-  }
-
-  updateName(){
-    const id = document.getElementById("node-id").value
-    const to_change = document.getElementById("node-name").value
-
-    this.getStateRef(id)    
-  }
-
-  //updateTransitions and updateNestedGroup should be called each time a new transition is added
-  updateTransitionsAndNestedGroups(){
-    [this.transition, this.nested_group]  = this.ts_manager.listTransitionsAndNestedGroupsInArray()
-    this.displayTransitions()
-  }
-
-  displayTransitions(){
-    console.log(this.transition)
-    console.log(this.nested_group)
-  }
-
-}
-
-function init(){
-    // the engine (and its canvas) comes first so starting nodes are placed around the view centre
-    const layerMachine = new LayerEngine()
-    const center = layerMachine.graph.viewCenter()
-    const blocked = layerMachine.graph.obstacles()
-
-    const layer1_states = []
-    add_node(layer1_states, center, 'Node', blocked)
-    add_node(layer1_states, center, 'Node', blocked)
-    add_node(layer1_states, center, 'Node', blocked)
-    add_node(layer1_states, center, 'Node', blocked)
-    const layer2_states = []
-    add_node(layer2_states, center, 'Node', blocked)
-    add_node(layer2_states, center, 'Node', blocked)
-
-    const layer3_states = []
-    add_node(layer3_states, center, 'Node', blocked)
-
-    let layer1 = new Layers(
-      layer1_states,
-      [],
-      [],
-    )
-
-    let layer2 = new Layers(
-      layer2_states,
-      [],
-      [],
-    )
-
-    let layer3 = new Layers(
-      layer3_states,
-      [],
-      [],
-    )
-
-    const graphManager = new GraphManager(layerMachine);
-
-    
-    //this has to be set through api push
-    layerMachine.layers = [layer1, layer2, layer3]
-    window.projectPlain = { layerMachine, graphManager } // handy in the dev console
-    layerMachine.load_layer(layer1)
-      
-    // Attach class methods to event listeners
-    document.getElementById('addnote-btn').addEventListener('click', graphManager.addNode);
-    document.getElementById('deletenote-btn').addEventListener('click', graphManager.deleteNode);
-    document.getElementById('cleargraph-btn').addEventListener('click', graphManager.clearGraph);
-    document.getElementById('save-btn').addEventListener('click', graphManager.saveGraph);
-    document.getElementById('addtrans-btn').addEventListener('click', graphManager.makeTransitions);
-    document.getElementById('swaplayer-btn').addEventListener('click', layerMachine.next_layer);
-    document.getElementById('update-state').addEventListener('click', layerMachine.updateLayer)
-
-}
-
-// Make the DIV element draggable:
-dragElement(document.getElementById("mydiv"));
-
-function dragElement(elmnt) {
-  var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-  if (document.getElementById(elmnt.id + "header")) {
-    // if present, the header is where you move the DIV from:
-    document.getElementById(elmnt.id + "header").onmousedown = dragMouseDown;
-  } else {
-    // otherwise, move the DIV from anywhere inside the DIV:
-    elmnt.onmousedown = dragMouseDown;
-  }
-
-  function dragMouseDown(e) {
-    e = e || window.event;
-    e.preventDefault();
-  // get the mouse cursor position at startup:
-    pos3 = e.clientX;
-    pos4 = e.clientY;
-    document.onmouseup = closeDragElement;
-    // call a function whenever the cursor moves:
-    document.onmousemove = elementDrag;
-  }
-
-  function elementDrag(e) {
-    e = e || window.event;
-    e.preventDefault();
-    // calculate the new cursor position:
-    pos1 = pos3 - e.clientX;
-    pos2 = pos4 - e.clientY;
-    pos3 = e.clientX;
-    pos4 = e.clientY;
-    // set the element's new position:
-    elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
-    elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
-  }
-
-  function closeDragElement() {
-    // stop moving when mouse button is released:
-    document.onmouseup = null;
-    document.onmousemove = null;
+  return {
+    ready,
+    graph,
+    plain,
+    close() { closeLive?.() },
   }
 }
 
+/** Dynamically imports the real modules and boots the app against the live canvas. */
+export async function main() {
+  const canvas = document.getElementById('canvas')
+  const [live, mergeMod, ceilingMod, graphMod, nodeMod, groupMod, thMod] = await Promise.all([
+    import('./components/live.js'),
+    import('./components/merge.js'),
+    import('./components/ceiling.js'),
+    import('./components/graph.js'),
+    import('./components/node.js'),
+    import('./components/group.js'),
+    import('./components/th.js'),
+  ])
 
-document.addEventListener('DOMContentLoaded', init);
+  const app = createApp({
+    live,
+    merge: mergeMod.merge,
+    applyCeiling: ceilingMod.applyCeiling,
+    Graph: graphMod.default,
+    CodeNode: nodeMod.CodeNode,
+    FolderGroup: groupMod.FolderGroup,
+    buildEdges: thMod.buildEdges,
+  }, { canvas, doc: document, win: window })
+
+  window.__plainApp = app
+  await app.ready
+  return app
+}
+
+if (typeof window !== 'undefined' && !window.__PLAIN_NO_AUTOSTART__) {
+  main()
+}
