@@ -1,7 +1,7 @@
 // App shell: wires live data -> merge -> ceiling -> scene -> Graph, and the inspector/status bar.
 // This is the ONE module allowed to import anything (see shared/dom.md, tasks/CHANGELOG.md).
 
-import { emptyLayout, isEmptyPatch, applyLayoutPatch } from '../../shared/contracts.js'
+import { emptyLayout, isEmptyPatch, applyLayoutPatch, dirOf } from '../../shared/contracts.js'
 import { renderInspector, renderStatus } from './components/info_window.js'
 
 /**
@@ -98,14 +98,16 @@ export function createApp(deps, { canvas, doc = document, win = window }) {
     plain.graph = codeGraph
     plain.scene = scene
 
-    const groups = scene.groups.map(g => new FolderGroup(g))
+    const groups = drawableGroups(scene).map(g => new FolderGroup(g))
     const nodesById = new Map(scene.nodes.map(n => [n.id, n]))
     const nodes = scene.nodes.map(n => new CodeNode(n))
     const boxOf = (id) => {
       const n = nodesById.get(id)
       return n ? { x: n.x, y: n.y, w: n.w, h: n.h } : undefined
     }
-    const edges = buildEdges(scene.edges, boxOf)
+    // node boxes are read live (drag mutates them), so routes follow moved nodes
+    const obstacles = () => scene.nodes.map(n => ({ x: n.x, y: n.y, w: n.w, h: n.h }))
+    const edges = buildEdges(scene.edges, boxOf, { obstacles })
 
     graph.setScene({ groups, edges, nodes })
 
@@ -124,9 +126,22 @@ export function createApp(deps, { canvas, doc = document, win = window }) {
     paintStatus()
   }
 
+  /** Forgets every saved position and lays the current graph out again by call flow. */
+  function relayout() {
+    if (!prevGraph || currentScene?.mode === 'files') return
+    const patch = { nodes: {}, groups: {}, orphans: {} }
+    for (const k of ['nodes', 'groups', 'orphans']) for (const id of Object.keys(layout[k])) patch[k][id] = null
+    live.saveLayout(patch)
+    layout = applyLayoutPatch(layout, patch)
+    onGraph(prevGraph)
+    graph.fitToContent()
+  }
+  plain.relayout = relayout
+
   async function start() {
     renderInspector(doc, null, inspectorGraph)
     paintStatus()
+    doc.getElementById('relayout')?.addEventListener('click', relayout)
     doc.getElementById('inspector-close')?.addEventListener('click', () => {
       renderInspector(doc, null, inspectorGraph)
       graph.select?.(null)
@@ -144,6 +159,16 @@ export function createApp(deps, { canvas, doc = document, win = window }) {
     plain,
     close() { closeLive?.() },
   }
+}
+
+/** Folder boxes that still mean something: in a flow layout a directory's functions can be
+ * spread across the canvas, so skip any box that overlaps another folder's box or encloses
+ * a function from a different directory. */
+export function drawableGroups(scene) {
+  const hit = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h
+  return scene.groups.filter(g =>
+    !scene.groups.some(o => o !== g && hit(g, o)) &&
+    !scene.nodes.some(n => dirOf(n.file) !== g.id && hit(g, n)))
 }
 
 /** Dynamically imports the real modules and boots the app against the live canvas. */

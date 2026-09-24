@@ -5,6 +5,10 @@
 //
 // boxOf(id) is called at draw() / bounds() time (never cached), because nodes
 // can be dragged after this CallEdge is constructed.
+//
+// With a `router` (see utils/router.js, attached by buildEdges) the edge instead
+// follows an orthogonal route: out of the caller's right side, through the gaps
+// between nodes, into the callee's left side, never on top of another edge.
 
 import { liangBarskyClip, perpendicular, boxCenter } from './utils/geometry.js'
 
@@ -15,6 +19,7 @@ const ARROW_LENGTH = 10
 const ARROW_WIDTH = 7
 const LINE_COLOR = '#7a7a7a'
 const HIGHLIGHT_COLOR = '#e8c14a'
+const CORNER = 8
 
 const EMPTY_RECT = Object.freeze({ x: 0, y: 0, w: 0, h: 0 })
 
@@ -22,14 +27,21 @@ export class CallEdge {
   /**
    * @param {{id:string, from:string, to:string, kind:'call'}} codeEdge
    * @param {(id: string) => ({x:number,y:number,w:number,h:number}|undefined)} boxOf
-   * @param {{lane?: number}} [opts]
+   * @param {{lane?: number, router?: import('./utils/router.js').Router}} [opts]
    */
-  constructor(codeEdge, boxOf, { lane = 0 } = {}) {
+  constructor(codeEdge, boxOf, { lane = 0, router = null } = {}) {
     this.data = codeEdge
     this.id = codeEdge.id
     this.boxOf = boxOf
     this.lane = lane
+    this.router = router
     this.highlight = false
+  }
+
+  /** The routed polyline, or null when there is no router (or it is disabled). */
+  _route() {
+    if (!this.router || !this.router.enabled || !this.valid()) return null
+    return this.router.routeOf(this.data)
   }
 
   valid() {
@@ -90,6 +102,8 @@ export class CallEdge {
   }
 
   draw(ctx, view) {
+    const route = this._route()
+    if (route) return this._drawRoute(ctx, view, route)
     const geo = this._geometry()
     if (!geo) return
     const { start, end, baseLeft, baseRight } = geo
@@ -113,7 +127,40 @@ export class CallEdge {
     ctx.fill()
   }
 
+  _drawRoute(ctx, view, pts) {
+    const color = this.highlight ? HIGHLIGHT_COLOR : LINE_COLOR
+    const end = pts[pts.length - 1], prev = pts[pts.length - 2]
+    const dir = Math.sign(end.x - prev.x) || 1
+    const tip = end, base = { x: end.x - dir * ARROW_LENGTH, y: end.y }
+
+    ctx.beginPath()
+    ctx.moveTo(pts[0].x, pts[0].y)
+    for (let i = 1; i < pts.length - 1; i++) {
+      const p = pts[i], n = pts[i + 1], q = pts[i - 1]
+      const r = Math.min(CORNER, Math.hypot(p.x - q.x, p.y - q.y) / 2, Math.hypot(n.x - p.x, n.y - p.y) / 2)
+      ctx.arcTo(p.x, p.y, n.x, n.y, r)
+    }
+    ctx.lineTo(base.x, base.y)
+    ctx.lineWidth = (this.highlight ? HIGHLIGHT_LINE_WIDTH : LINE_WIDTH) / view.k
+    ctx.strokeStyle = color
+    ctx.stroke()
+
+    ctx.beginPath()
+    ctx.moveTo(tip.x, tip.y)
+    ctx.lineTo(base.x, base.y - ARROW_WIDTH / 2)
+    ctx.lineTo(base.x, base.y + ARROW_WIDTH / 2)
+    ctx.closePath()
+    ctx.fillStyle = color
+    ctx.fill()
+  }
+
   bounds() {
+    const route = this._route()
+    if (route) {
+      const xs = route.map(p => p.x), ys = route.map(p => p.y)
+      const minX = Math.min(...xs), minY = Math.min(...ys) - ARROW_WIDTH
+      return { x: minX, y: minY, w: Math.max(...xs) - minX, h: Math.max(...ys) + ARROW_WIDTH - minY }
+    }
     const geo = this._geometry()
     if (!geo) return { ...EMPTY_RECT }
     const { start, end, baseLeft, baseRight } = geo
