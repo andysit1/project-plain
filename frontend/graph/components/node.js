@@ -1,116 +1,153 @@
-const NODE_CORNER_RADIUS = 8
-const NODE_COLOR = '#552222'
-const NODE_BORDER_COLOR = '#555555'
-const NODE_HIGHLIGHT_COLOR = '#777777'
-const NODE_TEXT_FONT = '12px Calibri'
-const NODE_TEXT_COLOR = '#CCCCCC'
-const NODE_ACTIVE_COLOR = '#556699'
-const LINE_COLOR = '#555555'
-const LINE_THICKNESS = 5
-const LINE_SEPARATION = 16
-const LINE_HIGHLIGHT = '#888888'
-const LINE_TEXT_FONT = '12px Calibri'
-const LAYER_ENTER_COLOR = '#559966'
+// CodeNode: a Drawable that renders one SceneNode (shared/contracts.js) as a rounded box.
+// Browser ES module: no Node APIs. Imports only shared/contracts.js.
+import { RING_MS } from '../../../shared/contracts.js'
 
-// Monotonic ids: `states.length` repeats ids once a node is deleted.
-let nextId = 0
-export function nextNodeId () { return nextId++ }
-export function reserveNodeId (id) { if (typeof id === 'number' && id >= nextId) { nextId = id + 1 } }
+const CORNER_RADIUS = 8
+export const NODE_PADDING = 10
+const PADDING = NODE_PADDING
+const LINE1_FONT = 'bold 13px Calibri'
+const LINE2_FONT = '12px Calibri'
+const LINE1_COLOR = '#F2F2F2'
+const LINE2_COLOR = '#D8D8D8'
+const BORDER_COLOR = '#333333'
+const SELECT_COLOR = '#FFD75E'
+const RING_COLOR = '107, 168, 255' // rgb triple, alpha varies with ring progress
+const RING_MAX_MARGIN = 8
+const SELECT_MARGIN = 3
 
-export class Rect {
-    constructor (x, y, w, h) {
-      this.x = x
-      this.y = y
-      this.w = w
-      this.h = h
-    }
-  
-    cx () {
-      return this.x + this.w / 2
-    }
-  
-    cy () {
-      return this.y + this.h / 2
-    }
-}
+export const KIND_COLORS = Object.freeze({
+  fn: '#2E5D45',      // green
+  method: '#2E4A5D',  // blue
+  module: '#5D4A2E',  // amber/brown
+})
 
-export class State {
-    constructor (id, name, rect) {
-        this.id = id
-        this.name = name
-        this.rect = rect
-        this.highlight = false
-        this.activeState = false
-    }
+const DEFAULT_FILL = '#444444'
 
-    updateName(name){
-        this.name = name
-    }
+export class CodeNode {
+  /**
+   * @param {import('../../../shared/contracts.js').SceneNode} sceneNode
+   * @param {{ now?: () => number }} [opts]
+   */
+  constructor(sceneNode, { now = () => performance.now() } = {}) {
+    this.data = sceneNode
+    this.id = sceneNode.id
+    this.selected = false
+    this._now = now
+    this._createdAt = sceneNode.changed ? now() : null
+  }
 
-    draw (ctx) {
-        this.fillNodePath(ctx)
+  /** True while the change ring is still animating. */
+  isAnimating(t = this._now()) {
+    if (this._createdAt === null) return false
+    return (t - this._createdAt) < RING_MS
+  }
 
-        ctx.fillStyle = NODE_COLOR
-        ctx.fill()
+  bounds() {
+    const { x, y, w, h } = this.data
+    const margin = Math.max(RING_MAX_MARGIN, SELECT_MARGIN)
+    return { x: x - margin, y: y - margin, w: w + margin * 2, h: h + margin * 2 }
+  }
 
-        ctx.lineWidth = 2
-        ctx.strokeStyle = this.highlight ? NODE_HIGHLIGHT_COLOR : NODE_BORDER_COLOR
-        ctx.stroke()
+  hitTest(x, y) {
+    const { x: nx, y: ny, w, h } = this.data
+    return x >= nx && x < nx + w && y >= ny && y < ny + h
+  }
 
-        ctx.fillStyle = NODE_TEXT_COLOR
-        ctx.font = NODE_TEXT_FONT
-        ctx.textAlign = 'center'
-        ctx.textBaseline = 'middle'
-        ctx.fillText(this.fitText(ctx, String(this.name), this.rect.w - 16), this.rect.x + this.rect.w / 2, this.rect.y + this.rect.h / 2)
-    }
+  moveTo(x, y) {
+    this.data.x = x
+    this.data.y = y
+  }
 
-    // shorten with an ellipsis so long names (function signatures) stay inside the node
-    fitText (ctx, text, maxWidth) {
-        if (ctx.measureText(text).width <= maxWidth) { return text }
-        let lo = 0, hi = text.length
-        while (lo < hi) {
-            const mid = (lo + hi + 1) >> 1
-            if (ctx.measureText(text.slice(0, mid) + '…').width <= maxWidth) { lo = mid } else { hi = mid - 1 }
-        }
-        return text.slice(0, lo) + '…'
-    }
+  draw(ctx, view) {
+    const { x, y, w, h, kind } = this.data
+    const fill = KIND_COLORS[kind] || DEFAULT_FILL
 
-    drawActive (ctx) {
+    this._roundedRectPath(ctx, x, y, w, h, CORNER_RADIUS)
+    ctx.fillStyle = fill
+    ctx.fill()
 
-        if (!this.activeState) { return }
+    ctx.lineWidth = 1.5
+    ctx.strokeStyle = BORDER_COLOR
+    ctx.stroke()
 
-        this.fillNodePath(ctx, 8)
-        ctx.lineWidth = 3
-        ctx.strokeStyle = NODE_ACTIVE_COLOR
-        ctx.stroke()
-
-
-
+    if (view.showLabels) {
+      this._drawText(ctx, x, y, w, h)
     }
 
-    fillNodePath (ctx, buffer = 0) {
-        const x = this.rect.x - buffer
-        const y = this.rect.y - buffer
-        const w = this.rect.w + buffer * 2
-        const h = this.rect.h + buffer * 2
-        const r = NODE_CORNER_RADIUS + buffer
-
-        ctx.beginPath()
-        ctx.moveTo(x + r, y)
-        ctx.lineTo(x + w - r, y)
-        ctx.quadraticCurveTo(x + w, y, x + w, y + r)
-        ctx.lineTo(x + w, y + h - r)
-        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h)
-        ctx.lineTo(x + r, y + h)
-        ctx.quadraticCurveTo(x, y + h, x, y + h - r)
-        ctx.lineTo(x, y + r)
-        ctx.quadraticCurveTo(x, y, x + r, y)
-        ctx.closePath()
+    if (this.selected) {
+      this._drawSelection(ctx, x, y, w, h)
     }
 
-    // hit box = the drawn box (the old +8px margin made neighbours steal clicks)
-    isInBounds (x, y) {
-        return x >= this.rect.x && x < this.rect.x + this.rect.w &&
-                y >= this.rect.y && y < this.rect.y + this.rect.h
+    if (this._createdAt !== null) {
+      this._drawRing(ctx, x, y, w, h)
     }
+  }
+
+  _drawText(ctx, x, y, w, h) {
+    const { name, params, returns } = this.data
+    const sig = returns ? `${name}(${params}) -> ${returns}` : `${name}(${params})`
+    const maxWidth = w - PADDING * 2
+    const cx = x + w / 2
+
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+
+    ctx.font = LINE1_FONT
+    ctx.fillStyle = LINE1_COLOR
+    const line1 = this._fitText(ctx, String(name), maxWidth)
+    ctx.fillText(line1, cx, y + h * 0.35)
+
+    ctx.font = LINE2_FONT
+    ctx.fillStyle = LINE2_COLOR
+    const line2 = this._fitText(ctx, sig, maxWidth)
+    ctx.fillText(line2, cx, y + h * 0.72)
+  }
+
+  _drawSelection(ctx, x, y, w, h) {
+    this._roundedRectPath(ctx, x - SELECT_MARGIN, y - SELECT_MARGIN, w + SELECT_MARGIN * 2, h + SELECT_MARGIN * 2, CORNER_RADIUS + SELECT_MARGIN)
+    ctx.lineWidth = 2
+    ctx.strokeStyle = SELECT_COLOR
+    ctx.stroke()
+  }
+
+  _drawRing(ctx, x, y, w, h) {
+    const t = this._now()
+    const elapsed = t - this._createdAt
+    if (elapsed >= RING_MS) return
+    const progress = Math.max(0, Math.min(1, elapsed / RING_MS))
+    const alpha = 1 - progress
+    const margin = RING_MAX_MARGIN * progress + 2
+
+    this._roundedRectPath(ctx, x - margin, y - margin, w + margin * 2, h + margin * 2, CORNER_RADIUS + margin)
+    ctx.lineWidth = 2.5
+    ctx.strokeStyle = `rgba(${RING_COLOR}, ${alpha})`
+    ctx.stroke()
+  }
+
+  // Shorten `text` with an ellipsis so it fits within maxWidth, using binary search on measureText.
+  _fitText(ctx, text, maxWidth) {
+    if (maxWidth <= 0) return ''
+    if (ctx.measureText(text).width <= maxWidth) return text
+    let lo = 0, hi = text.length
+    while (lo < hi) {
+      const mid = (lo + hi + 1) >> 1
+      if (ctx.measureText(text.slice(0, mid) + '…').width <= maxWidth) { lo = mid } else { hi = mid - 1 }
+    }
+    return lo === 0 ? '' : text.slice(0, lo) + '…'
+  }
+
+  _roundedRectPath(ctx, x, y, w, h, r) {
+    const rr = Math.min(r, w / 2, h / 2)
+    ctx.beginPath()
+    ctx.moveTo(x + rr, y)
+    ctx.lineTo(x + w - rr, y)
+    ctx.quadraticCurveTo(x + w, y, x + w, y + rr)
+    ctx.lineTo(x + w, y + h - rr)
+    ctx.quadraticCurveTo(x + w, y + h, x + w - rr, y + h)
+    ctx.lineTo(x + rr, y + h)
+    ctx.quadraticCurveTo(x, y + h, x, y + h - rr)
+    ctx.lineTo(x, y + rr)
+    ctx.quadraticCurveTo(x, y, x + rr, y)
+    ctx.closePath()
+  }
 }
