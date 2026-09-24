@@ -1,0 +1,17 @@
+{
+  "name": "map",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Watches a repo, extracts a function call graph with tree-sitter, serves it to the project-plain canvas over HTTP/SSE.",
+  "type": "module",
+  "bin": {
+    "map": "bin/map.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "tree-sitter-wasms": "^0.1.12",
+    "web-tree-sitter": "^0.22.6"
+  }
+}
