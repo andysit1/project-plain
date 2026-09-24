@@ -15,6 +15,7 @@ T10 (`frontend/graph/index.html`, `index.js`) must provide these; T11's Playwrig
 | `#inspector-name`, `#inspector-sig`, `#inspector-loc` | Name, `name(params) -> returns`, `file:line` |
 | `#inspector-callers li`, `#inspector-callees li` | One `li` per caller/callee, text = the other node's qname, `data-id` = its id |
 | `#open-in-editor` | Button: `POST /open?file=&line=` |
+| `#relayout` | Button: forget saved positions and re-arrange by call flow |
 
 ## Test hook: `window.__plain`
 
@@ -28,6 +29,7 @@ window.__plain = {
   positions(),      // Record<nodeId, {x, y}> of scene.nodes (world coords, top-left)
   select(id),       // selects a node as a click would (fills the inspector)
   connection,       // 'connecting' | 'open' | 'closed'
+  relayout(),       // same as clicking #relayout
 }
 ```
 
