@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "nodes": {
+    "app/main.py::main": {
+      "x": 0,
+      "y": 0
+    },
+    "app/main.py::run": {
+      "x": 0,
+      "y": 100
+    },
+    "app/config.py::load_config": {
+      "x": 275,
+      "y": 0
+    },
+    "app/config.py::parse_env": {
+      "x": 275,
+      "y": 100
+    },
+    "app/config.py::Config.validate": {
+      "x": 275,
+      "y": 200
+    },
+    "app/utils.py::read_file": {
+      "x": 550,
+      "y": 0
+    },
+    "app/utils.py::slugify": {
+      "x": 550,
+      "y": 100
+    },
+    "app/utils.py::retry": {
+      "x": 550,
+      "y": 200
+    },
+    "app/db.py::connect": {
+      "x": 825,
+      "y": 0
+    },
+    "app/db.py::query": {
+      "x": 825,
+      "y": 100
+    },
+    "app/db.py::close": {
+      "x": 825,
+      "y": 200
+    },
+    "web/api.ts::fetchUser": {
+      "x": 1200,
+      "y": 0
+    },
+    "web/api.ts::fetchPosts": {
+      "x": 1200,
+      "y": 100
+    },
+    "web/client.ts::request": {
+      "x": 1475,
+      "y": 0
+    },
+    "web/client.ts::buildUrl": {
+      "x": 1475,
+      "y": 100
+    }
+  },
+  "groups": {
+    "app": {
+      "x": -25,
+      "y": -25,
+      "w": 1075,
+      "h": 306
+    },
+    "web": {
+      "x": 1175,
+      "y": -25,
+      "w": 525,
+      "h": 206
+    }
+  },
+  "orphans": {},
+  "camera": {
+    "x": 80,
+    "y": 80,
+    "k": 1
+  }
+}

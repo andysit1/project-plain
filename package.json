@@ -1,0 +1,20 @@
+{
+  "name": "project-plain",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/unit/",
+    "e2e": "playwright test",
+    "fixtures": "node shared/fixtures/make-fixtures.mjs",
+    "check-owners": "node tasks/claim.mjs --check-owners",
+    "postinstall": "git config core.hooksPath .githooks || true"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@napi-rs/canvas": "^1.0.9",
+    "@playwright/test": "^1.63.0"
+  }
+}

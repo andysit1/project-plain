@@ -1,0 +1,286 @@
+{
+  "version": 1,
+  "root": "/fixtures/demo-repo",
+  "builtAt": 1758700060000,
+  "nodes": [
+    {
+      "id": "app/main.py::main",
+      "name": "main",
+      "qname": "main",
+      "file": "app/main.py",
+      "line": 5,
+      "kind": "fn",
+      "params": "",
+      "returns": "None",
+      "sig": "dbbe4a5e",
+      "body": "70a459a9"
+    },
+    {
+      "id": "app/main.py::run",
+      "name": "run",
+      "qname": "run",
+      "file": "app/main.py",
+      "line": 10,
+      "kind": "fn",
+      "params": "cfg",
+      "returns": "None",
+      "sig": "b18c15e9",
+      "body": "c4de1f9a"
+    },
+    {
+      "id": "app/config.py::load_config",
+      "name": "load_config",
+      "qname": "load_config",
+      "file": "app/config.py",
+      "line": 8,
+      "kind": "fn",
+      "params": "path=\".env\"",
+      "returns": "Config",
+      "sig": "35e08238",
+      "body": "1c92d082"
+    },
+    {
+      "id": "app/config.py::parse_env",
+      "name": "parse_env",
+      "qname": "parse_env",
+      "file": "app/config.py",
+      "line": 20,
+      "kind": "fn",
+      "params": "text, strict=False",
+      "returns": "dict",
+      "sig": "402338aa",
+      "body": "76e51ddd"
+    },
+    {
+      "id": "app/config.py::Config.validate",
+      "name": "validate",
+      "qname": "Config.validate",
+      "file": "app/config.py",
+      "line": 30,
+      "kind": "method",
+      "params": "self",
+      "returns": "Config",
+      "sig": "b2d6bde4",
+      "body": "64269fe3"
+    },
+    {
+      "id": "app/utils.py::read_file",
+      "name": "read_file",
+      "qname": "read_file",
+      "file": "app/utils.py",
+      "line": 3,
+      "kind": "fn",
+      "params": "path",
+      "returns": "str",
+      "sig": "72f7b09f",
+      "body": "6dccc9ca"
+    },
+    {
+      "id": "app/utils.py::make_slug",
+      "name": "make_slug",
+      "qname": "make_slug",
+      "file": "app/utils.py",
+      "line": 8,
+      "kind": "fn",
+      "params": "text",
+      "returns": "str",
+      "sig": "c4f45b16",
+      "body": "3aac973a"
+    },
+    {
+      "id": "app/utils.py::retry",
+      "name": "retry",
+      "qname": "retry",
+      "file": "app/utils.py",
+      "line": 12,
+      "kind": "fn",
+      "params": "fn, times=3",
+      "returns": "Any",
+      "sig": "cb383ee9",
+      "body": "933f8f8f"
+    },
+    {
+      "id": "app/utils.py::chunk",
+      "name": "chunk",
+      "qname": "chunk",
+      "file": "app/utils.py",
+      "line": 20,
+      "kind": "fn",
+      "params": "text, size=4096",
+      "returns": "list",
+      "sig": "66bed085",
+      "body": "c7c69532"
+    },
+    {
+      "id": "app/db.py::connect",
+      "name": "connect",
+      "qname": "connect",
+      "file": "app/db.py",
+      "line": 4,
+      "kind": "fn",
+      "params": "url",
+      "returns": "Conn",
+      "sig": "8b0da926",
+      "body": "dfd770bd"
+    },
+    {
+      "id": "app/db.py::query",
+      "name": "query",
+      "qname": "query",
+      "file": "app/db.py",
+      "line": 12,
+      "kind": "fn",
+      "params": "conn, sql",
+      "returns": "list",
+      "sig": "293a34e6",
+      "body": "f57318aa"
+    },
+    {
+      "id": "web/api.ts::fetchUser",
+      "name": "fetchUser",
+      "qname": "fetchUser",
+      "file": "web/api.ts",
+      "line": 3,
+      "kind": "fn",
+      "params": "id: string",
+      "returns": "Promise<User>",
+      "sig": "bde678c5",
+      "body": "17ac12f7"
+    },
+    {
+      "id": "web/api.ts::fetchPosts",
+      "name": "fetchPosts",
+      "qname": "fetchPosts",
+      "file": "web/api.ts",
+      "line": 7,
+      "kind": "fn",
+      "params": "userId: string",
+      "returns": "Promise<Post[]>",
+      "sig": "08ad91c3",
+      "body": "26d42b5d"
+    },
+    {
+      "id": "web/client.ts::request",
+      "name": "request",
+      "qname": "request",
+      "file": "web/client.ts",
+      "line": 5,
+      "kind": "fn",
+      "params": "path: string",
+      "returns": "Promise<any>",
+      "sig": "f809a675",
+      "body": "c48b24dc"
+    },
+    {
+      "id": "web/client.ts::buildUrl",
+      "name": "buildUrl",
+      "qname": "buildUrl",
+      "file": "web/client.ts",
+      "line": 12,
+      "kind": "fn",
+      "params": "path: string",
+      "returns": "string",
+      "sig": "3fe0a245",
+      "body": "6d4217a7"
+    }
+  ],
+  "edges": [
+    {
+      "id": "app/main.py::main>app/config.py::load_config",
+      "from": "app/main.py::main",
+      "to": "app/config.py::load_config",
+      "kind": "call"
+    },
+    {
+      "id": "app/main.py::main>app/main.py::run",
+      "from": "app/main.py::main",
+      "to": "app/main.py::run",
+      "kind": "call"
+    },
+    {
+      "id": "app/main.py::run>app/db.py::connect",
+      "from": "app/main.py::run",
+      "to": "app/db.py::connect",
+      "kind": "call"
+    },
+    {
+      "id": "app/main.py::run>app/db.py::query",
+      "from": "app/main.py::run",
+      "to": "app/db.py::query",
+      "kind": "call"
+    },
+    {
+      "id": "app/main.py::run>app/utils.py::make_slug",
+      "from": "app/main.py::run",
+      "to": "app/utils.py::make_slug",
+      "kind": "call"
+    },
+    {
+      "id": "app/config.py::load_config>app/config.py::parse_env",
+      "from": "app/config.py::load_config",
+      "to": "app/config.py::parse_env",
+      "kind": "call"
+    },
+    {
+      "id": "app/config.py::load_config>app/utils.py::read_file",
+      "from": "app/config.py::load_config",
+      "to": "app/utils.py::read_file",
+      "kind": "call"
+    },
+    {
+      "id": "app/config.py::load_config>app/config.py::Config.validate",
+      "from": "app/config.py::load_config",
+      "to": "app/config.py::Config.validate",
+      "kind": "call"
+    },
+    {
+      "id": "app/db.py::connect>app/utils.py::retry",
+      "from": "app/db.py::connect",
+      "to": "app/utils.py::retry",
+      "kind": "call"
+    },
+    {
+      "id": "app/db.py::connect>app/db.py::query",
+      "from": "app/db.py::connect",
+      "to": "app/db.py::query",
+      "kind": "call"
+    },
+    {
+      "id": "app/db.py::query>app/db.py::connect",
+      "from": "app/db.py::query",
+      "to": "app/db.py::connect",
+      "kind": "call"
+    },
+    {
+      "id": "app/db.py::query>app/utils.py::retry",
+      "from": "app/db.py::query",
+      "to": "app/utils.py::retry",
+      "kind": "call"
+    },
+    {
+      "id": "web/api.ts::fetchUser>web/client.ts::request",
+      "from": "web/api.ts::fetchUser",
+      "to": "web/client.ts::request",
+      "kind": "call"
+    },
+    {
+      "id": "web/api.ts::fetchPosts>web/client.ts::request",
+      "from": "web/api.ts::fetchPosts",
+      "to": "web/client.ts::request",
+      "kind": "call"
+    },
+    {
+      "id": "web/client.ts::request>web/client.ts::buildUrl",
+      "from": "web/client.ts::request",
+      "to": "web/client.ts::buildUrl",
+      "kind": "call"
+    },
+    {
+      "id": "app/utils.py::read_file>app/utils.py::chunk",
+      "from": "app/utils.py::read_file",
+      "to": "app/utils.py::chunk",
+      "kind": "call"
+    }
+  ],
+  "errors": []
+}

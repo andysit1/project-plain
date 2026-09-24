@@ -1,0 +1,31 @@
+{
+  "_comment": "Task -> exclusive write globs. Frozen after T0; only the coordinator edits this file (announce in tasks/CHANGELOG.md). fg/ in the plan = frontend/graph/. T12 owns every path no other task owns, plus the owns of tasks listed in its grants.",
+  "tasks": {
+    "T0":  { "slug": "contracts",   "title": "Contracts + tooling",
+             "owns": ["shared/**", "tasks/**", ".githooks/**", "package.json", "package-lock.json", ".gitignore", "tests/unit/t0-*.test.js"] },
+    "T1":  { "slug": "graph-json",  "title": "Graph JSON output",
+             "owns": ["map/src/extract.js", "map/src/graph.js", "tests/unit/t1-*.test.js"] },
+    "T2":  { "slug": "layout-store", "title": "Layout store (data/)",
+             "owns": ["map/src/layout-store.js", "tests/unit/t2-*.test.js"] },
+    "T3":  { "slug": "server-cli",  "title": "Server + CLI",
+             "owns": ["map/src/server.js", "map/bin/**", "map/package.json", "map/package-lock.json", "map/public/**", "map/README.md", "tests/unit/t3-*.test.js"] },
+    "T4":  { "slug": "live-client", "title": "Live data client",
+             "owns": ["frontend/graph/components/live.js", "tests/unit/t4-*.test.js"] },
+    "T5":  { "slug": "merge-placement", "title": "Merge + auto-placement",
+             "owns": ["frontend/graph/components/merge.js", "frontend/graph/utils/placement.js", "tests/unit/t5-*.test.js"] },
+    "T6":  { "slug": "code-node",   "title": "Code node drawing",
+             "owns": ["frontend/graph/components/node.js", "tests/unit/t6-*.test.js"] },
+    "T7":  { "slug": "folder-group", "title": "Folder group drawing",
+             "owns": ["frontend/graph/components/group.js", "tests/unit/t7-*.test.js"] },
+    "T8":  { "slug": "call-edge",   "title": "Call edge drawing",
+             "owns": ["frontend/graph/components/transition.js", "frontend/graph/components/th.js", "frontend/graph/components/utils/**", "tests/unit/t8-*.test.js"] },
+    "T9":  { "slug": "culling-ceiling", "title": "Culling + ceiling",
+             "owns": ["frontend/graph/components/graph.js", "frontend/graph/components/ceiling.js", "tests/unit/t9-*.test.js"] },
+    "T10": { "slug": "app-shell",   "title": "App shell + inspector",
+             "owns": ["frontend/graph/index.html", "frontend/graph/index.js", "frontend/graph/index.css", "frontend/graph/components/info_window.js", "frontend/graph/components/graph_handler.js", "frontend/graph/components/toolbar.js", "frontend/graph/utils/nums.js", "tests/unit/t10-*.test.js"] },
+    "T11": { "slug": "e2e",         "title": "E2E harness",
+             "owns": ["tests/e2e/**", "tests/demo-repo/**", "playwright.config.js"] },
+    "T12": { "slug": "integration", "title": "Integration", "fallback": true, "grants": [],
+             "owns": [] }
+  }
+}

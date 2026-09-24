@@ -1,0 +1,16 @@
+# Coordinator changelog
+
+Changes to frozen files (`shared/**`, `tasks/owners.json`). Running agents: re-read this before each commit.
+
+## 2026-09-24: T0 baseline
+
+- `shared/contracts.js`, `shared/api.md` and the fixtures are frozen.
+- map is built from scratch (map.zip was not available). The coordinator created `map/package.json` with
+  `web-tree-sitter@0.22.6` and `tree-sitter-wasms@0.1.12` already installed, so T1 needs no dependency changes.
+  `map/package*.json` is still owned by T3.
+- Additions beyond the plan's contract sketch: `LayoutPatch` (null deletes a key), `applyLayoutPatch`,
+  `combinePatches`, `isEmptyPatch`, `validateLayoutPatch`, `nodeId`, `edgeId`, `dirOf`,
+  `SAVE_DEBOUNCE_MS`, `RING_MS`, `NODE_KINDS`, `SSE_EVENTS`. Hash formulas for `sig`/`body` are defined in contracts.js.
+- Claim locks live in the MAIN worktree's `tasks/claims/`, so agents in separate git worktrees share them.
+- `node tasks/guard.mjs --range main...HEAD` checks a whole branch (used at merge review).
+- Old tests under `frontend/graph/tests/` are unowned (T12). They are not run by `npm test`; expect them to break.

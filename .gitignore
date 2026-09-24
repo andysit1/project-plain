@@ -1,1 +1,7 @@
 .DS_STORE
+node_modules/
+data/
+tasks/claims/*.lock
+test-results/
+playwright-report/
+__pycache__/
