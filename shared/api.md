@@ -54,3 +54,18 @@ map [root=.] [--port 7070] [--host 127.0.0.1] [--no-open] [--editor "code -g {fi
 
 `<project-plain>/data/<basename(root)>-<sha1(absolute root, forward slashes, lowercased drive letter)[0:8]>/layout.json`
 (owned by T2, `map/src/layout-store.js`). `data/` is git-ignored.
+
+**Environment override:** if `MAP_DATA_DIR` is set, it replaces `<project-plain>/data` as the data root
+(the `<basename>-<hash>/layout.json` part is unchanged). E2E tests set it to a temp dir.
+
+## Graph build (T1 -> T3)
+
+`buildGraph(root, opts) -> Promise<CodeGraph>` in `map/src/graph.js`.
+`opts = { ignore?: string[], stats?: object }`. When `opts.stats` is given, buildGraph sets
+`stats.changed` = number of files re-parsed (cache misses). The mtime parse cache is module-level.
+
+## Layout store (T2 -> T3)
+
+`map/src/layout-store.js` exports `dataDirFor(repoRoot)`, `readLayout(repoRoot) -> Promise<Layout>`,
+`writeLayout(repoRoot, layout) -> Promise<void>` (throws if `validateLayout` fails). T3 imports it as
+`import * as layoutStore from './layout-store.js'`.

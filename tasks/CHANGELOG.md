@@ -14,3 +14,9 @@ Changes to frozen files (`shared/**`, `tasks/owners.json`). Running agents: re-r
 - Claim locks live in the MAIN worktree's `tasks/claims/`, so agents in separate git worktrees share them.
 - `node tasks/guard.mjs --range main...HEAD` checks a whole branch (used at merge review).
 - Old tests under `frontend/graph/tests/` are unowned (T12). They are not run by `npm test`; expect them to break.
+
+## 2026-09-24: seams added before wave 1
+
+- `shared/dom.md`: element ids and the `window.__plain` test hook (T10 provides, T11 consumes).
+- `shared/api.md`: `MAP_DATA_DIR` env override (T2), `buildGraph` opts/stats (T1 -> T3), layout-store exports (T2 -> T3).
+- `owners.json`: each T1–T10 also owns `tests/unit/snapshots/tN-*` and `tests/unit/helpers/tN-*`.
