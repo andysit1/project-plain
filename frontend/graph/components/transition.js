@@ -1,229 +1,126 @@
+// CallEdge: draws a CodeEdge (shared/contracts.js) as a line between two node
+// boxes, clipped to each box's border with Liang-Barsky, with an arrowhead at
+// the target. When both A->B and B->A exist they are assigned opposite lanes
+// (see th.js: buildEdges) so they draw as two parallel, non-overlapping lines.
+//
+// boxOf(id) is called at draw() / bounds() time (never cached), because nodes
+// can be dragged after this CallEdge is constructed.
 
-//TODO igure out how this class works + make connections in node
-const NODE_CORNER_RADIUS = 8
-const NODE_COLOR = '#552222'
-const NODE_BORDER_COLOR = '#555555'
-const NODE_HIGHLIGHT_COLOR = '#777777'
-const NODE_WIDTH = 150
-const NODE_HEIGHT = 75
-const NODE_TEXT_FONT = '12px Calibri'
-const NODE_TEXT_COLOR = '#CCCCCC'
-const NODE_ACTIVE_COLOR = '#556699'
-const LINE_COLOR = '#555555'
-const LINE_THICKNESS = 5
-const LINE_SEPARATION = 16
-const LINE_HIGHLIGHT = '#888888'
-const LINE_TEXT_FONT = '12px Calibri'
-const LAYER_ENTER_COLOR = '#559966'
+import { liangBarskyClip, perpendicular, boxCenter } from './utils/geometry.js'
 
-//this grp is just used for calcuations given two states as parent and child.
-// grp called link/connection is better fitting I think.
+export const LANE_GAP = 14
+const LINE_WIDTH = 2
+const HIGHLIGHT_LINE_WIDTH = 3.5
+const ARROW_LENGTH = 10
+const ARROW_WIDTH = 7
+const LINE_COLOR = '#7a7a7a'
+const HIGHLIGHT_COLOR = '#e8c14a'
 
-export class TransitionGroup {
-    constructor (parent, child) {
-        this.parent = parent
-        this.child = child
-        this.transitions = []
-    }
+const EMPTY_RECT = Object.freeze({ x: 0, y: 0, w: 0, h: 0 })
 
-    //this calculate the offset from side to side transitions!
-    offset (transition) {
-        const index = this.transitions.indexOf(transition)
+export class CallEdge {
+  /**
+   * @param {{id:string, from:string, to:string, kind:'call'}} codeEdge
+   * @param {(id: string) => ({x:number,y:number,w:number,h:number}|undefined)} boxOf
+   * @param {{lane?: number}} [opts]
+   */
+  constructor(codeEdge, boxOf, { lane = 0 } = {}) {
+    this.data = codeEdge
+    this.id = codeEdge.id
+    this.boxOf = boxOf
+    this.lane = lane
+    this.highlight = false
+  }
 
-        const dir =
-            {
-            x: this.parent.rect.cx() - this.child.rect.cx(),
-            y: this.parent.rect.cy() - this.child.rect.cy()
-            }
+  valid() {
+    const { from, to } = this.data
+    if (from === to) return false
+    const a = this.boxOf(from)
+    const b = this.boxOf(to)
+    return !!a && !!b
+  }
 
-        this.rotateDir(dir, Math.PI / 2)
-        this.normalizeDir(dir)
+  /** Computes the clipped segment endpoints (world space) plus the two arrow
+   * base corners, or null when the edge cannot currently be resolved. */
+  _geometry() {
+    const { from, to } = this.data
+    if (from === to) return null
+    const boxA = this.boxOf(from)
+    const boxB = this.boxOf(to)
+    if (!boxA || !boxB) return null
 
-        const str = ((index + 0.5) - this.transitions.length / 2) * LINE_SEPARATION
+    const centerA = boxCenter(boxA)
+    const centerB = boxCenter(boxB)
 
-        return {
-        x: dir.x * str,
-        y: dir.y * str,
-        dirX: dir.x,
-        dirY: dir.y
-        }
-    }
+    // The perpendicular must be computed in a direction-independent (canonical)
+    // order, ALWAYS from the lexicographically smaller id's center to the
+    // larger id's center. Otherwise A->B and B->A (whose "from"/"to" centers
+    // are swapped relative to each other) would each flip the perpendicular's
+    // sign, cancelling out the sign flip already applied by `lane`, and both
+    // edges would land on the SAME side instead of opposite lanes.
+    const perp = from < to
+      ? perpendicular(centerA.x, centerA.y, centerB.x, centerB.y)
+      : perpendicular(centerB.x, centerB.y, centerA.x, centerA.y)
+    const offX = perp.x * this.lane * LANE_GAP
+    const offY = perp.y * this.lane * LANE_GAP
 
-    rotateDir (p, angle) {
-        const s = Math.sin(angle)
-        const c = Math.cos(angle)
+    const a = { x: centerA.x + offX, y: centerA.y + offY }
+    const b = { x: centerB.x + offX, y: centerB.y + offY }
 
-        const x = p.x * c - p.y * s
-        const y = p.x * s + p.y * c
+    // Clip each end back to the border of its own box, walking from the
+    // far center towards the near one so the result lands on the border.
+    const start = liangBarskyClip(boxA, b.x, b.y, a.x, a.y)
+    const end = liangBarskyClip(boxB, a.x, a.y, b.x, b.y)
 
-        p.x = x
-        p.y = y
-    }
+    // Arrowhead: a small triangle whose tip is `end`, base perpendicular to
+    // the line direction, set back by ARROW_LENGTH.
+    let dx = end.x - start.x
+    let dy = end.y - start.y
+    const mag = Math.sqrt(dx * dx + dy * dy) || 1
+    dx /= mag
+    dy /= mag
+    const baseX = end.x - dx * ARROW_LENGTH
+    const baseY = end.y - dy * ARROW_LENGTH
+    const nx = -dy * (ARROW_WIDTH / 2)
+    const ny = dx * (ARROW_WIDTH / 2)
+    const baseLeft = { x: baseX + nx, y: baseY + ny }
+    const baseRight = { x: baseX - nx, y: baseY - ny }
 
-    normalizeDir (dir) {
-        const mag = Math.sqrt(dir.x * dir.x + dir.y * dir.y)
-        if (mag === 0) { dir.x = 0; dir.y = 1; return } // stacked nodes: pick any direction, never NaN
-        dir.x /= mag
-        dir.y /= mag
-    }
-}
+    return { start, end, baseLeft, baseRight }
+  }
 
-export class Transition {
-    constructor (id, name, parent, child, group) {
-        this.id = id
-        this.name = name
-        this.parent = parent
-        this.child = child
-        this.group = group
-        this.highlight = false
-        
+  draw(ctx, view) {
+    const geo = this._geometry()
+    if (!geo) return
+    const { start, end, baseLeft, baseRight } = geo
 
-        //this is needed for the version with hashmap
-        // group.transitions.push(this)
-    }
+    const color = this.highlight ? HIGHLIGHT_COLOR : LINE_COLOR
+    const width = (this.highlight ? HIGHLIGHT_LINE_WIDTH : LINE_WIDTH) / view.k
 
-    draw (ctx) {
-        if (this.parent === this.child) { return } // self-loops aren't drawable yet
-        const offset = this.group.offset(this)
+    ctx.beginPath()
+    ctx.moveTo(start.x, start.y)
+    ctx.lineTo(end.x, end.y)
+    ctx.lineWidth = width
+    ctx.strokeStyle = color
+    ctx.stroke()
 
-        const a =
-            {
-            x: this.parent.rect.cx() + offset.x,
-            y: this.parent.rect.cy() + offset.y
-            }
+    ctx.beginPath()
+    ctx.moveTo(end.x, end.y)
+    ctx.lineTo(baseLeft.x, baseLeft.y)
+    ctx.lineTo(baseRight.x, baseRight.y)
+    ctx.closePath()
+    ctx.fillStyle = color
+    ctx.fill()
+  }
 
-        const b =
-            {
-            x: this.child.rect.cx() + offset.x,
-            y: this.child.rect.cy() + offset.y
-            }
-
-        this.clipArrow(this.child.rect, a, b)
-        const arrow = this.arrowBase(a, b)
-
-        ctx.beginPath()
-        ctx.moveTo(a.x, a.y)
-        ctx.lineTo(arrow.x, arrow.y)
-        ctx.closePath()
-
-        ctx.lineWidth = LINE_THICKNESS
-        ctx.strokeStyle = this.highlight ? LINE_HIGHLIGHT : LINE_COLOR
-        ctx.stroke()
-
-        ctx.beginPath()
-        ctx.moveTo(b.x, b.y)
-        ctx.lineTo(arrow.x + offset.dirX * arrow.size, arrow.y + offset.dirY * arrow.size)
-        ctx.lineTo(arrow.x - offset.dirX * arrow.size, arrow.y - offset.dirY * arrow.size)
-        ctx.lineTo(b.x, b.y)
-        ctx.closePath()
-
-        ctx.fillStyle = this.highlight ? LINE_HIGHLIGHT : LINE_COLOR
-        ctx.fill()
-    }
-
-    drawHover (ctx) {
-        if (!this.highlight || !this.name) { return }
-
-        ctx.fillStyle = NODE_TEXT_COLOR
-        ctx.font = LINE_TEXT_FONT
-        ctx.textAlign = 'left'
-        ctx.textBaseline = 'middle'
-        if (!this.mousePos) { return }
-        ctx.fillText(this.name, this.mousePos.x, this.mousePos.y - 10)
-    }
-
-    //freaky math what
-    isInBounds (x, y) {
-        if (this.parent === this.child) { return false }
-        function sqr (x) { return x * x }
-        function dist2 (v, w) { return sqr(v.x - w.x) + sqr(v.y - w.y) }
-        function distToSegmentSquared (p, v, w) {
-        const l2 = dist2(v, w)
-        if (l2 === 0) return dist2(p, v)
-        let t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2
-        t = Math.max(0, Math.min(1, t))
-        return dist2(p, {
-            x: v.x + t * (w.x - v.x),
-            y: v.y + t * (w.y - v.y)
-        })
-        }
-        function distToSegment (p, v, w) { return Math.sqrt(distToSegmentSquared(p, v, w)) }
-
-        const offset = this.group.offset(this)
-
-        const a =
-            {
-            x: this.parent.rect.cx() + offset.x,
-            y: this.parent.rect.cy() + offset.y
-            }
-
-        const b =
-            {
-            x: this.child.rect.cx() + offset.x,
-            y: this.child.rect.cy() + offset.y
-            }
-
-        this.clipArrow(this.child.rect, a, b)
-        this.clipArrow(this.parent.rect, b, a)
-        return distToSegment({ x: x, y: y }, a, b) <= LINE_THICKNESS
-    }
-
-    arrowBase (a, b) {
-        const dir = { x: b.x - a.x, y: b.y - a.y }
-        const mag = Math.sqrt(dir.x * dir.x + dir.y * dir.y) || 1
-        dir.x /= mag
-        dir.y /= mag
-
-        const arrowSize = LINE_THICKNESS * 2
-
-        return {
-        x: b.x - dir.x * arrowSize * 2,
-        y: b.y - dir.y * arrowSize * 2,
-        size: arrowSize
-        }
-    }
-
-    clipArrow (rect, a, b) {
-        const intersect = this.liangBarskyClipper(
-        rect.x, rect.y, rect.x + rect.w, rect.y + rect.h,
-        a.x, a.y,
-        b.x, b.y)
-
-        b.x = intersect.x
-        b.y = intersect.y
-    }
-
-    liangBarskyClipper (xmin, ymin, xmax, ymax, x1, y1, x2, y2) {
-        const p1 = -(x2 - x1)
-        const p2 = -p1
-        const p3 = -(y2 - y1)
-        const p4 = -p3
-
-        let n1 = 0
-        let n2 = 0
-
-        if (p1 !== 0) {
-        if (p1 < 0) { n1 = (x1 - xmin) / p1 } else { n1 = (xmax - x1) / p2 }
-        }
-
-        if (p3 !== 0) {
-        if (p3 < 0) { n2 = (y1 - ymin) / p3 } else { n2 = (ymax - y1) / p4 }
-        }
-
-        const rn = Math.max(0, n1, n2)
-        return {
-        x: x1 + p2 * rn,
-        y: y1 + p4 * rn
-        }
-    }
-}
-
-
-class NestedGroup {
-    constructor (id, indent, enter, exit) {
-        this.id = id
-        this.indent = indent
-        this.enter = enter
-        this.exit = exit
-    }
+  bounds() {
+    const geo = this._geometry()
+    if (!geo) return { ...EMPTY_RECT }
+    const { start, end, baseLeft, baseRight } = geo
+    const xs = [start.x, end.x, baseLeft.x, baseRight.x]
+    const ys = [start.y, end.y, baseLeft.y, baseRight.y]
+    const minX = Math.min(...xs), maxX = Math.max(...xs)
+    const minY = Math.min(...ys), maxY = Math.max(...ys)
+    return { x: minX, y: minY, w: maxX - minX, h: maxY - minY }
+  }
 }
