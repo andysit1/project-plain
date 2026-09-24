@@ -191,3 +191,16 @@ canvas#canvas {
   background: #26303f;
   color: var(--accent);
 }
+
+#relayout {
+  margin-left: auto;
+  padding: 3px 10px;
+  font: inherit;
+  color: var(--text-dim);
+  background: transparent;
+  border: 1px solid var(--panel-border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+#relayout:hover { color: inherit; border-color: currentColor; }

@@ -1,8 +1,9 @@
 // Merges a CodeGraph with a saved Layout into a Scene the canvas can draw.
 // Pure: no DOM, no randomness, no clock except opts.now. Never mutates its inputs.
 
-import { NODE_W, NODE_H, GROUP_PAD, dirOf } from '../../../shared/contracts.js'
+import { NODE_W, NODE_H, GROUP_PAD, NODE_CEILING, dirOf } from '../../../shared/contracts.js'
 import { findFreeSpot } from '../utils/placement.js'
+import { flowLayout, COL_GAP, ROW_STEP } from '../utils/flow.js'
 
 function rectOfPos(pos) {
     return { x: pos.x, y: pos.y, w: NODE_W, h: NODE_H }
@@ -18,6 +19,10 @@ function rectOfPos(pos) {
 export function merge(graph, layout, prevGraph = null, opts = {}) {
     const now = opts.now ?? 0
     const viewCenter = opts.viewCenter ?? { x: 0, y: 0 }
+
+    // Above the ceiling the canvas shows files mode and never saves these positions,
+    // so skip placement entirely (it is O(n^2)) and hand back a cheap grid.
+    if (graph.nodes.length > NODE_CEILING) return quickScene(graph, prevGraph)
 
     const currentIds = new Set(graph.nodes.map(n => n.id))
     const prevById = new Map((prevGraph ? prevGraph.nodes : []).map(n => [n.id, n]))
@@ -85,7 +90,7 @@ export function merge(graph, layout, prevGraph = null, opts = {}) {
     }
 
     const isFirstRun = Object.keys(layout.nodes).length === 0
-    const columnTargets = isFirstRun ? computeColumns(graph) : null
+    const columnTargets = isFirstRun ? flowLayout(graph) : null
 
     for (const n of graph.nodes) {
         if (placedPos[n.id]) continue // already positioned above
@@ -192,14 +197,14 @@ function findPlacedRelative(n, edges, placedPos) {
             const caller = placedPos[e.from]
             return {
                 side: 'right',
-                near: { x: caller.x + NODE_W + 25 + NODE_W / 2, y: caller.y + NODE_H / 2 },
+                near: { x: caller.x + NODE_W + COL_GAP + NODE_W / 2, y: caller.y + NODE_H / 2 },
             }
         }
         if (e.from === n.id && placedPos[e.to]) {
             const callee = placedPos[e.to]
             return {
                 side: 'left',
-                near: { x: callee.x - 25 - NODE_W / 2, y: callee.y + NODE_H / 2 },
+                near: { x: callee.x - COL_GAP - NODE_W / 2, y: callee.y + NODE_H / 2 },
             }
         }
     }
@@ -218,41 +223,16 @@ function findBelowSameFile(n, nodesInOrder, placedPos) {
     return { near: { x: lowest.x + NODE_W / 2, y: lowest.y + NODE_H + 25 + NODE_H / 2 } }
 }
 
-/** First-run layout: one column per file, files in the same directory side by side,
- * directories left to right with a gap between groups. Returns Map(id -> {x, y}). */
-function computeColumns(graph) {
-    const colWidth = NODE_W + 25
-    const rowHeight = NODE_H + 25
-    const dirGap = 25 * 4
-
-    const dirOrder = []
-    const filesByDir = new Map()
-    for (const n of graph.nodes) {
-        const d = dirOf(n.file)
-        if (!filesByDir.has(d)) { filesByDir.set(d, []); dirOrder.push(d) }
-        const files = filesByDir.get(d)
-        if (!files.includes(n.file)) files.push(n.file)
-    }
-
-    const nodesByFile = new Map()
-    for (const n of graph.nodes) {
-        if (!nodesByFile.has(n.file)) nodesByFile.set(n.file, [])
-        nodesByFile.get(n.file).push(n)
-    }
-    for (const arr of nodesByFile.values()) arr.sort((a, b) => a.line - b.line)
-
-    const targets = new Map()
-    let dirX = 0
-    for (const dir of dirOrder) {
-        const files = filesByDir.get(dir)
-        files.forEach((file, colIdx) => {
-            const colX = dirX + colIdx * colWidth
-            const nodes = nodesByFile.get(file)
-            nodes.forEach((n, rowIdx) => {
-                targets.set(n.id, { x: colX, y: rowIdx * rowHeight })
-            })
-        })
-        dirX += files.length * colWidth + dirGap
-    }
-    return targets
+/** Grid positions with no placement search, for graphs over NODE_CEILING (files mode). */
+function quickScene(graph, prevGraph) {
+    const prevById = new Map((prevGraph ? prevGraph.nodes : []).map(n => [n.id, n]))
+    const perRow = Math.ceil(Math.sqrt(graph.nodes.length))
+    const nodes = graph.nodes.map((n, i) => {
+        const prev = prevById.get(n.id)
+        return {
+            ...n, x: (i % perRow) * (NODE_W + COL_GAP), y: Math.floor(i / perRow) * ROW_STEP,
+            w: NODE_W, h: NODE_H, changed: !!prev && prev.sig !== n.sig,
+        }
+    })
+    return { mode: 'functions', nodes, groups: [], edges: graph.edges, layoutPatch: {}, total: graph.nodes.length }
 }
