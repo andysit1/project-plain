@@ -1,0 +1,10 @@
+{
+  "name": "project-plain-graph",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Canvas state-graph editor frontend. ESM modules, loaded directly by index.html.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/"
+  }
+}
