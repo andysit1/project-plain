@@ -1,63 +1,86 @@
+// Canvas host: fixed camera, HiDPI, pan/zoom, picking, drag, culling and repaint scheduling.
+// Draws whatever Drawables (groups, edges, nodes) are handed to it via setScene(); it has no
+// opinion about what a node or edge *is* — that's T6/T7/T8. Selection/move/camera notifications
+// go out through subscriber callbacks (onSelect/onMove/onCamera) instead of touching the DOM
+// directly, so T10 (the app shell) owns the inspector wiring.
 
-import { updateWindow } from "./info_window.js"
-import { GRID, snap } from "../utils/placement.js"
+import { GRID, CULL_MARGIN, LABEL_MIN_ZOOM } from '../../../shared/contracts.js'
 
-const NODE_SELECT_COLOR = '#FFA500'
 const DRAG_THRESHOLD = 4 // px of movement before a press becomes a drag
+const CAMERA_DEBOUNCE_MS = 300
+
+const snap = v => Math.round(v / GRID) * GRID
+
+// axis-aligned rect intersection, both args {x,y,w,h}
+function rectsIntersect (a, b) {
+    return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y
+}
 
 class Graph {
     constructor (canvas) {
         this.canvas = canvas
         this.width = canvas.width
         this.height = canvas.height
-        this.dpr = window.devicePixelRatio || 1
-        this.states = []
-        this.transitions = []
-        this.nestedGroups = []
+        this.dpr = (typeof window !== 'undefined' && window.devicePixelRatio) || 1
+
+        this.scene = { groups: [], edges: [], nodes: [] }
+        this.selectedId = null
 
         // camera: screen = world * k + (x, y). Lets nodes live anywhere, not just on-screen.
         this.camera = { x: 0, y: 0, k: 1 }
 
-        this.select_active = null
-        this.previous_select_active = null
-        this.current_layer = 1
         this.drag = null
         this.pan = null
+        this.dirty = true
+        this.stats = { drawCalls: 0 }
+
+        this._selectCbs = new Set()
+        this._moveCbs = new Set()
+        this._cameraCbs = new Set()
+        this._cameraTimer = null
+
         this.subscribeEvents()
-        this.repaint = true
-        requestAnimationFrame(() => this.animation())
+        if (typeof requestAnimationFrame === 'function') {
+            requestAnimationFrame(() => this.animation())
+        }
     }
 
-    reset_selectors(){
-        this.previous_select_active = null
-        this.select_active = null
-        updateWindow(null)
+    // ---------------------------------------------------------------- scene
+
+    // Keeps the current selection alive across a scene swap when the same id still exists.
+    setScene (scene) {
+        const groups = (scene && scene.groups) || []
+        const edges = (scene && scene.edges) || []
+        const nodes = (scene && scene.nodes) || []
+        this.scene = { groups, edges, nodes }
+
+        const keep = this.selectedId != null ? nodes.find(n => n.id === this.selectedId) : null
+        this.applySelection(keep || null)
+        this.dirty = true
     }
 
-    clear () {
-        this.states = []
-        this.transitions = []
-        this.reset_selectors()
-        this.repaint = true
+    // ---------------------------------------------------------------- camera
+
+    setCamera ({ x, y, k }) {
+        this.camera = { x, y, k }
+        this.dirty = true
+        this.scheduleCameraNotify()
     }
 
-    // World-space point at the middle of the visible canvas; new nodes are placed near here.
+    onCamera (cb) { this._cameraCbs.add(cb); return () => this._cameraCbs.delete(cb) }
+
+    scheduleCameraNotify () {
+        if (this._cameraTimer) { clearTimeout(this._cameraTimer) }
+        this._cameraTimer = setTimeout(() => {
+            this._cameraTimer = null
+            const c = { ...this.camera }
+            for (const cb of this._cameraCbs) { cb(c) }
+        }, CAMERA_DEBOUNCE_MS)
+    }
+
+    // World-space point at the middle of the visible canvas.
     viewCenter () {
         return this.screenToWorld({ x: this.canvas.clientWidth / 2, y: this.canvas.clientHeight / 2 })
-    }
-
-    // World-space rects covered by floating UI (the properties panel), so placement avoids them
-    obstacles () {
-        const out = []
-        const canvasBox = this.canvas.getBoundingClientRect()
-        for (const el of document.querySelectorAll('#mydiv')) {
-            const r = el.getBoundingClientRect()
-            if (!r.width || !r.height) { continue }
-            const a = this.screenToWorld({ x: r.left - canvasBox.left, y: r.top - canvasBox.top })
-            const b = this.screenToWorld({ x: r.right - canvasBox.left, y: r.bottom - canvasBox.top })
-            out.push({ rect: { x: a.x, y: a.y, w: b.x - a.x, h: b.y - a.y } })
-        }
-        return out
     }
 
     screenToWorld (p) {
@@ -65,7 +88,68 @@ class Graph {
         return { x: (p.x - c.x) / c.k, y: (p.y - c.y) / c.k }
     }
 
-    //method to dom events (subscribed once; pointer capture keeps drags alive outside the canvas)
+    // Fits every drawable's bounds() (plus a screen-px margin) into the canvas.
+    fitToContent (margin = 40) {
+        const all = [...this.scene.groups, ...this.scene.nodes, ...this.scene.edges]
+        if (all.length === 0) { return }
+
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+        for (const d of all) {
+            const b = d.bounds()
+            minX = Math.min(minX, b.x); minY = Math.min(minY, b.y)
+            maxX = Math.max(maxX, b.x + b.w); maxY = Math.max(maxY, b.y + b.h)
+        }
+        const w = Math.max(1, maxX - minX)
+        const h = Math.max(1, maxY - minY)
+        const cw = this.canvas.clientWidth
+        const ch = this.canvas.clientHeight
+
+        let k = Math.min((cw - 2 * margin) / w, (ch - 2 * margin) / h)
+        k = Math.max(0.2, Math.min(3, k))
+
+        const cx = minX + w / 2
+        const cy = minY + h / 2
+        const x = cw / 2 - cx * k
+        const y = ch / 2 - cy * k
+        this.setCamera({ x, y, k })
+    }
+
+    // ---------------------------------------------------------------- selection / picking
+
+    onSelect (cb) { this._selectCbs.add(cb); return () => this._selectCbs.delete(cb) }
+    onMove (cb) { this._moveCbs.add(cb); return () => this._moveCbs.delete(cb) }
+
+    select (id) {
+        const node = this.scene.nodes.find(n => n.id === id) || null
+        this.applySelection(node)
+    }
+
+    // Sets node.selected / edge.highlight to match `node` (or clears everything on null),
+    // firing onSelect subscribers only when the selected id actually changes.
+    applySelection (node) {
+        const newId = node ? node.id : null
+        for (const n of this.scene.nodes) { n.selected = (n === node) }
+        for (const e of this.scene.edges) {
+            const d = e.data || {}
+            e.highlight = !!node && (d.from === newId || d.to === newId)
+        }
+        const changed = newId !== this.selectedId
+        this.selectedId = newId
+        this.dirty = true
+        if (changed) { for (const cb of this._selectCbs) { cb(node || null) } }
+    }
+
+    // topmost node under a world point (last drawn wins, matching what the user sees)
+    nodeAt (x, y) {
+        const nodes = this.scene.nodes
+        for (let i = nodes.length - 1; i >= 0; i--) {
+            if (nodes[i].hitTest(x, y)) { return nodes[i] }
+        }
+        return null
+    }
+
+    // ---------------------------------------------------------------- dom events
+
     subscribeEvents () {
         this.canvas.style.touchAction = 'none'
         this.canvas.addEventListener('pointermove', e => this.onMouseMove(e))
@@ -75,47 +159,159 @@ class Graph {
         this.canvas.addEventListener('wheel', e => this.onWheel(e), { passive: false })
     }
 
-    needsRepaint () {
-        if (this.repaint) { return true }
+    // pointer position relative to the canvas, in screen pixels
+    eventPos (event) {
+        const rect = this.canvas.getBoundingClientRect()
+        return { x: event.clientX - rect.left, y: event.clientY - rect.top }
+    }
 
-        if (this.canvas.clientWidth !== this.width ||
-                this.canvas.clientHeight !== this.height) { return true }
+    onMouseDown (event) {
+        event.preventDefault()
+        this.canvas.setPointerCapture?.(event.pointerId)
+        const screen = this.eventPos(event)
+        const { x, y } = this.screenToWorld(screen)
 
-        return false
+        const node = this.nodeAt(x, y)
+        if (!node) {
+            // empty space: start panning; a click without movement deselects on release
+            this.pan = { sx: screen.x, sy: screen.y, camX: this.camera.x, camY: this.camera.y }
+            return
+        }
+
+        this.applySelection(node)
+
+        // bring the grabbed node to the front so it draws over what it's dragged across
+        const i = this.scene.nodes.indexOf(node)
+        if (i !== -1) { this.scene.nodes.splice(i, 1); this.scene.nodes.push(node) }
+
+        const b = node.bounds()
+        this.drag = {
+            node,
+            startX: b.x,
+            startY: b.y,
+            lastX: b.x,
+            lastY: b.y,
+            mouseX: x,
+            mouseY: y,
+            sx: screen.x,
+            sy: screen.y,
+            moved: false
+        }
+    }
+
+    onMouseMove (event) {
+        event.preventDefault()
+        const screen = this.eventPos(event)
+        const { x, y } = this.screenToWorld(screen)
+
+        if (this.pan) {
+            this.camera.x = this.pan.camX + screen.x - this.pan.sx
+            this.camera.y = this.pan.camY + screen.y - this.pan.sy
+            this.dirty = true
+            this.scheduleCameraNotify()
+            return
+        }
+        this.updateDrag(x, y, screen)
+    }
+
+    updateDrag (x, y, screen) {
+        if (!this.drag) { return }
+        if (!this.drag.moved && Math.hypot(screen.x - this.drag.sx, screen.y - this.drag.sy) < DRAG_THRESHOLD) { return }
+        this.drag.moved = true
+
+        const nx = x - this.drag.mouseX + this.drag.startX
+        const ny = y - this.drag.mouseY + this.drag.startY
+        this.drag.lastX = nx
+        this.drag.lastY = ny
+        this.drag.node.moveTo(nx, ny)
+        this.dirty = true
+    }
+
+    onMouseUp (event) {
+        event.preventDefault()
+        if (this.canvas.hasPointerCapture?.(event.pointerId)) {
+            this.canvas.releasePointerCapture(event.pointerId)
+        }
+        if (this.pan) {
+            const screen = this.eventPos(event)
+            const clicked = Math.hypot(screen.x - this.pan.sx, screen.y - this.pan.sy) < DRAG_THRESHOLD
+            this.pan = null
+            if (clicked) { this.applySelection(null) }
+            return
+        }
+        if (this.drag?.moved) {
+            // snap to the grid so hand-placed layouts line up
+            const node = this.drag.node
+            const sx = snap(this.drag.lastX)
+            const sy = snap(this.drag.lastY)
+            node.moveTo(sx, sy)
+            this.dirty = true
+            for (const cb of this._moveCbs) { cb(node, { x: sx, y: sy }) }
+        }
+        this.drag = null
+    }
+
+    onWheel (event) {
+        event.preventDefault()
+        const screen = this.eventPos(event)
+        const c = this.camera
+        const k = Math.min(3, Math.max(0.2, c.k * Math.exp(-event.deltaY * 0.0015)))
+        // zoom around the cursor
+        c.x = screen.x - ((screen.x - c.x) * k) / c.k
+        c.y = screen.y - ((screen.y - c.y) * k) / c.k
+        c.k = k
+        this.dirty = true
+        this.scheduleCameraNotify()
+    }
+
+    // ---------------------------------------------------------------- render loop
+
+    needsRepaint (now) {
+        if (this.dirty) { return true }
+        if (this.canvas.clientWidth !== this.width || this.canvas.clientHeight !== this.height) { return true }
+        return this.scene.nodes.some(n => typeof n.isAnimating === 'function' && n.isAnimating(now))
+    }
+
+    // Drives one frame synchronously (no rAF needed), for tests and the real render loop alike.
+    renderFrame (now = (typeof performance !== 'undefined' ? performance.now() : Date.now())) {
+        if (!this.needsRepaint(now)) { return }
+        this.dirty = false
+        try {
+            this.drawScene()
+        } catch (err) {
+            console.error('drawScene failed', err) // never let one bad frame kill the loop
+        }
     }
 
     animation () {
-        if (this.needsRepaint()) {
-            this.repaint = false
-            try {
-                this.drawScene()
-            } catch (err) {
-                console.error('drawScene failed', err) // never let one bad frame kill the loop
-            }
-        }
-
+        this.renderFrame()
         requestAnimationFrame(() => this.animation())
     }
 
-    drawLayerCounter(){
-        const layerLayout = document.getElementById('textOverlay')
-        layerLayout.innerHTML = this.current_layer
+    // world rect currently on screen, expanded by CULL_MARGIN
+    visibleWorldRect () {
+        const a = this.screenToWorld({ x: 0, y: 0 })
+        const b = this.screenToWorld({ x: this.canvas.clientWidth, y: this.canvas.clientHeight })
+        return {
+            x: a.x - CULL_MARGIN,
+            y: a.y - CULL_MARGIN,
+            w: (b.x - a.x) + 2 * CULL_MARGIN,
+            h: (b.y - a.y) + 2 * CULL_MARGIN
+        }
     }
 
-    //draws the selected graph node! keeps select until diff is chosen
-    drawSelect (ctx) {
-        if (!this.select_active) { return }
-
-        this.select_active.fillNodePath(ctx, 8)
-        ctx.lineWidth = 3
-        ctx.strokeStyle = NODE_SELECT_COLOR
-        ctx.stroke()
+    drawList (ctx, view, list, visible) {
+        for (const d of list) {
+            if (!rectsIntersect(d.bounds(), visible)) { continue } // culled
+            d.draw(ctx, view)
+            this.stats.drawCalls++
+        }
     }
 
     drawScene () {
         this.width = this.canvas.clientWidth
         this.height = this.canvas.clientHeight
-        this.dpr = window.devicePixelRatio || 1
+        this.dpr = (typeof window !== 'undefined' && window.devicePixelRatio) || 1
         // back the canvas with device pixels so text and lines stay sharp on HiDPI screens
         this.canvas.width = Math.round(this.width * this.dpr)
         this.canvas.height = Math.round(this.height * this.dpr)
@@ -130,16 +326,13 @@ class Graph {
         ctx.setTransform(this.dpr * c.k, 0, 0, this.dpr * c.k, this.dpr * c.x, this.dpr * c.y)
         this.drawBackground(ctx)
 
-        for (const state of this.states) { state.drawActive(ctx) }
+        this.stats.drawCalls = 0
+        const view = { k: c.k, showLabels: c.k >= LABEL_MIN_ZOOM }
+        const visible = this.visibleWorldRect()
 
-        for (const trans of this.transitions) { trans.draw(ctx) }
-
-        for (const state of this.states) { state.draw(ctx) }
-
-        for (const trans of this.transitions) { trans.drawHover(ctx) }
-
-        this.drawSelect(ctx)
-        this.drawLayerCounter()
+        this.drawList(ctx, view, this.scene.groups, visible)
+        this.drawList(ctx, view, this.scene.edges, visible)
+        this.drawList(ctx, view, this.scene.nodes, visible)
     }
 
     drawBackground (ctx) {
@@ -149,12 +342,6 @@ class Graph {
 
         ctx.strokeStyle = '#363636'
         this.renderGrid(ctx, GRID * 4)
-    }
-
-    // pointer position relative to the canvas, in screen pixels
-    eventPos (event) {
-        const rect = this.canvas.getBoundingClientRect()
-        return { x: event.clientX - rect.left, y: event.clientY - rect.top }
     }
 
     // grid lines across the visible world area only
@@ -171,145 +358,6 @@ class Graph {
         }
         ctx.stroke()
     }
-
-    // topmost node under a world point (last drawn wins, matching what the user sees)
-    stateAt (x, y) {
-        for (let i = this.states.length - 1; i >= 0; i--) {
-            if (this.states[i].isInBounds(x, y)) { return this.states[i] }
-        }
-        return null
-    }
-
-    select (state) {
-        if (state === this.select_active) { return }
-        if (this.select_active) { this.previous_select_active = this.select_active }
-        this.select_active = state
-        updateWindow(state) // show the node that is now selected, not the previous one
-        this.repaint = true
-    }
-
-    onMouseMove (event) {
-        event.preventDefault()
-        const screen = this.eventPos(event)
-        const { x, y } = this.screenToWorld(screen)
-
-        if (this.pan) {
-            this.camera.x = this.pan.camX + screen.x - this.pan.sx
-            this.camera.y = this.pan.camY + screen.y - this.pan.sy
-            this.repaint = true
-            return
-        }
-        this.updateDrag(x, y, screen)
-        this.updateHover(x, y)
-    }
-
-    updateDrag (x, y, screen) {
-        if (!this.drag) { return }
-        if (!this.drag.moved && Math.hypot(screen.x - this.drag.sx, screen.y - this.drag.sy) < DRAG_THRESHOLD) { return }
-        this.drag.moved = true
-
-        this.drag.target.rect.x = x - this.drag.mouseX + this.drag.startX
-        this.drag.target.rect.y = y - this.drag.mouseY + this.drag.startY
-        this.repaint = true
-    }
-
-    updateHover (x, y) {
-        const mousePos = { x: x, y: y }
-        const hovered = this.stateAt(x, y)
-
-        for (const state of this.states) {
-            const mousedOver = state === hovered
-
-            if (mousedOver !== state.highlight) {
-                state.highlight = mousedOver
-                this.repaint = true
-            }
-        }
-
-        for (const trans of this.transitions) {
-            const mousedOver = trans.isInBounds(x, y)
-
-            if (mousedOver !== trans.highlight) {
-                trans.highlight = mousedOver
-                this.repaint = true
-            }
-
-            if (mousedOver) {
-                trans.mousePos = mousePos
-                this.repaint = true
-            }
-        }
-    }
-
-    onMouseDown (event) {
-        event.preventDefault()
-        this.canvas.setPointerCapture(event.pointerId)
-        const screen = this.eventPos(event)
-        const { x, y } = this.screenToWorld(screen)
-
-        const targetState = this.stateAt(x, y)
-
-        if (!targetState) {
-            // empty space: start panning; a click without movement deselects on release
-            this.pan = { sx: screen.x, sy: screen.y, camX: this.camera.x, camY: this.camera.y }
-            return
-        }
-
-        this.select(targetState)
-
-        // bring the grabbed node to the front so it draws over what it's dragged across
-        this.states.splice(this.states.indexOf(targetState), 1)
-        this.states.push(targetState)
-
-        this.drag = {
-            target: targetState,
-            startX: targetState.rect.x,
-            startY: targetState.rect.y,
-            mouseX: x,
-            mouseY: y,
-            sx: screen.x,
-            sy: screen.y,
-            moved: false
-        }
-    }
-
-    onMouseUp (event) {
-        event.preventDefault()
-        if (this.canvas.hasPointerCapture?.(event.pointerId)) {
-            this.canvas.releasePointerCapture(event.pointerId)
-        }
-        if (this.pan) {
-            const screen = this.eventPos(event)
-            const clicked = Math.hypot(screen.x - this.pan.sx, screen.y - this.pan.sy) < DRAG_THRESHOLD
-            this.pan = null
-            if (clicked && this.select_active) {
-                this.select_active = null
-                updateWindow(null)
-                this.repaint = true
-            }
-            return
-        }
-        if (this.drag?.moved) {
-            // snap to the grid so hand-placed layouts line up
-            this.drag.target.rect.x = snap(this.drag.target.rect.x)
-            this.drag.target.rect.y = snap(this.drag.target.rect.y)
-            this.repaint = true
-        }
-        this.drag = null
-    }
-
-    onWheel (event) {
-        event.preventDefault()
-        const screen = this.eventPos(event)
-        const c = this.camera
-        const k = Math.min(3, Math.max(0.2, c.k * Math.exp(-event.deltaY * 0.0015)))
-        // zoom around the cursor
-        c.x = screen.x - ((screen.x - c.x) * k) / c.k
-        c.y = screen.y - ((screen.y - c.y) * k) / c.k
-        c.k = k
-        this.repaint = true
-    }
 }
-
 
 export default Graph
