@@ -10,6 +10,9 @@
   "engines": {
     "node": ">=20"
   },
+  "scripts": {
+    "start": "node bin/map.js"
+  },
   "dependencies": {
     "tree-sitter-wasms": "^0.1.12",
     "web-tree-sitter": "^0.22.6"
